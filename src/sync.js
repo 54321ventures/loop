@@ -78,3 +78,28 @@ const onVis = () => { if (document.visibilityState === "visible") pull(); };
 
 // Used by the AI proxy calls
 export async function authHeader() { if (!cloudEnabled) return {}; const { data } = await supabase.auth.getSession(); const t = data?.session?.access_token; return t ? { Authorization: `Bearer ${t}` } : {}; }
+
+// AI call helper: sends the signed-in token (cloud mode) and/or the app passcode (local mode).
+export async function aiFetch(body) {
+  const go = async () => fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeader()), "x-app-passcode": ls.get("loop_passcode") || "" }, body: JSON.stringify(body) });
+  let res = await go();
+  if (res.status === 401 && !cloudEnabled) {
+    const p = window.prompt("Enter your Loop passcode to use AI features:");
+    if (p) { ls.set("loop_passcode", p); res = await go(); }
+  }
+  return res;
+}
+
+// Backup: download everything as one JSON file / restore from it.
+export async function exportAll() {
+  const out = {};
+  for (const k of (await storage.list()).keys) out[k] = JSON.parse((await storage.get(k)).value);
+  const blob = new Blob([JSON.stringify({ app: "loop", version: 1, exportedAt: new Date().toISOString(), data: out })], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `loop-backup-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
+}
+export async function importAll(file) {
+  const j = JSON.parse(await file.text());
+  if (j.app !== "loop" || !j.data) throw new Error("Not a Loop backup file");
+  for (const [k, v] of Object.entries(j.data)) await storage.set(k, JSON.stringify(v));
+  return Object.keys(j.data).length;
+}

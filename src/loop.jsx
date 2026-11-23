@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { authHeader } from "./sync.js";
+import { aiFetch, exportAll, importAll } from "./sync.js";
 
 /* ===========================================================
    Loop · a calm soft-tech wellness companion
@@ -110,7 +110,7 @@ const sound = {
   tap() { this.play([523]); }, add() { this.play([587, 784]); }, win() { this.play([523, 659, 880, 1047]); },
 };
 async function askAI(system, content, max = 1000) {
-  const res = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeader()) }, body: JSON.stringify({ max_tokens: max, system, messages: [{ role: "user", content }] }) });
+  const res = await aiFetch({ max_tokens: max, system, messages: [{ role: "user", content }] });
   const raw = await res.text(); if (!res.ok) { let m = ""; try { const j = JSON.parse(raw); m = j.error?.message || j.error || ""; } catch {} throw new Error("HTTP " + res.status + (m ? " – " + m : "")); }
   const json = JSON.parse(raw); return (json.content || []).filter(b => b.type === "text").map(b => b.text).join(" ");
 }
@@ -471,7 +471,7 @@ function Chat({ data, onClose }) {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   const send = async () => { if (!input.trim() || loading) return; const u = input.trim(); setInput(""); setMessages(m => [...m, { role: "user", text: u }]); setLoading(true);
     try { const ctx = `User today: ${data.caloriesEaten}/${data.budget} kcal, burned ${data.burned}, steps ${data.steps}, weight ${data.weight}kg (goal ${data.targetWeight}kg by ${data.targetDate}), sleep ${data.sleepHours}h, water ${data.water}/${data.waterGoal}. Warm, concise, encouraging. Not a doctor.`;
-      const res = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeader()) }, body: JSON.stringify({ max_tokens: 1000, system: ctx, messages: [...messages.slice(1).map(m => ({ role: m.role, content: m.text })), { role: "user", content: u }] }) });
+      const res = await aiFetch({ max_tokens: 1000, system: ctx, messages: [...messages.slice(1).map(m => ({ role: m.role, content: m.text })), { role: "user", content: u }] });
       const json = await res.json(); setMessages(m => [...m, { role: "assistant", text: json.content?.find(b => b.type === "text")?.text || "Try again?" }]); } catch { setMessages(m => [...m, { role: "assistant", text: "Connection issue — try again." }]); } setLoading(false);
   };
   return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "80vh" }}>
@@ -517,6 +517,8 @@ function Profile({ data, history, streak, account, theme, onToggleTheme, onLogin
         <button onClick={onToggleTheme} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.violet, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>{theme === "dark" ? "🌙 Appearance · Dark" : "☀️ Appearance · Light"}</button>
         <button onClick={onToggleSound} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: data.soundOn ? C.cyan : C.faint, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>{data.soundOn ? "🔊 Sound on" : "🔇 Sound off"}</button>
         {account && <button onClick={onLogout} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.soft, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Sign out</button>}
+        <button onClick={() => exportAll()} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.cyan, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>⬇️ Export backup</button>
+        <label style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.cyan, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT, textAlign: "center" }}>⬆️ Import backup<input type="file" accept="application/json,.json" style={{ display: "none" }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const n = await importAll(f); alert(`Restored ${n} items. Reloading…`); location.reload(); } catch (err) { alert("Import failed: " + err.message); } }} /></label>
         <button onClick={onReset} style={{ border: `1px solid ${C.coral}44`, background: C.glass, color: C.coral, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Reset all data</button>
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 20, flexWrap: "wrap" }}>

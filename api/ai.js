@@ -15,6 +15,13 @@ async function run(req, res) {
     if (!u || !u.ok) return res.status(401).json({ error: "Sign in required" });
   }
 
+  // Local-only mode (no Supabase): protect your Anthropic credit with a shared passcode.
+  if (!(SUPABASE_URL && SUPABASE_ANON_KEY)) {
+    const { APP_PASSCODE } = process.env;
+    if (!APP_PASSCODE) return res.status(500).json({ error: "APP_PASSCODE is not set on the server (add it in Vercel, then redeploy)" });
+    if (req.headers["x-app-passcode"] !== APP_PASSCODE) return res.status(401).json({ error: "Wrong or missing passcode" });
+  }
+
   const { system, messages, max_tokens } = req.body || {};
   if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: "messages required" });
   const r = await fetch("https://api.anthropic.com/v1/messages", {
