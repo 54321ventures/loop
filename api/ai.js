@@ -1,9 +1,13 @@
 // Vercel serverless function: proxies AI calls so the Anthropic key never reaches the browser.
 // Only signed-in Loop users (valid Supabase token) can call it.
 export default async function handler(req, res) {
+  try { await run(req, res); } catch (e) { res.status(500).json({ error: "AI proxy crashed: " + (e?.message || e) }); }
+}
+
+async function run(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const { ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, AI_MODEL } = process.env;
-  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "AI not configured" });
+  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: "ANTHROPIC_API_KEY is not set on the server (add it in Vercel, then redeploy)" });
 
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
     const token = (req.headers.authorization || "").replace(/^Bearer /, "");

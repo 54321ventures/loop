@@ -111,7 +111,7 @@ const sound = {
 };
 async function askAI(system, content, max = 1000) {
   const res = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeader()) }, body: JSON.stringify({ max_tokens: max, system, messages: [{ role: "user", content }] }) });
-  const raw = await res.text(); if (!res.ok) throw new Error("HTTP " + res.status);
+  const raw = await res.text(); if (!res.ok) { let m = ""; try { const j = JSON.parse(raw); m = j.error?.message || j.error || ""; } catch {} throw new Error("HTTP " + res.status + (m ? " – " + m : "")); }
   const json = JSON.parse(raw); return (json.content || []).filter(b => b.type === "text").map(b => b.text).join(" ");
 }
 
