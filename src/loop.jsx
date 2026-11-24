@@ -17,17 +17,17 @@ const THEMES = {
     appBg: `radial-gradient(1100px 560px at 20% -8%, #241B3A, transparent 60%), radial-gradient(900px 520px at 90% 0%, #2a1d3e, transparent 55%), linear-gradient(180deg, #171A2E, #0E1020)`,
     sheetBg: `linear-gradient(180deg, #171A2E, #0E1020)`,
     setupBg: `radial-gradient(1200px 600px at 50% -10%, #241B3A, #0E1020)`,
-    navBg: "rgba(14,16,32,0.8)", scoreTrack: "rgba(255,255,255,0.08)",
+    navBg: "rgba(14,16,32,0.8)", scoreTrack: "rgba(255,255,255,0.08)", cardShadow: "none", light: false,
     ...ACCENTS, ...PILLARS,
   },
   light: {
     bg0: "#F4F5FA", bg1: "#FBFBFE", bg2: "#EEF0F8",
-    glass: "rgba(255,255,255,0.75)", glassBright: "rgba(255,255,255,0.92)", stroke: "rgba(20,22,50,0.10)",
+    glass: "rgba(255,255,255,0.72)", glassBright: "rgba(255,255,255,0.92)", stroke: "rgba(120,100,200,0.16)", cardShadow: "0 10px 30px rgba(120,100,200,0.14)", light: true,
     ink: "#1C1E2E", soft: "#5A5E78", faint: "#9499B4",
-    appBg: `radial-gradient(1100px 560px at 20% -8%, #ECE8FB, transparent 60%), radial-gradient(900px 520px at 90% 0%, #FCE7F0, transparent 55%), linear-gradient(180deg, #FBFBFE, #F1F2F9)`,
+    appBg: `radial-gradient(900px 520px at 8% -6%, #FFD3E2, transparent 62%), radial-gradient(800px 520px at 100% 2%, #CFE0FF, transparent 58%), radial-gradient(760px 520px at 50% 105%, #CFF3E2, transparent 62%), linear-gradient(180deg, #FFF7FB, #F0EEFC)`,
     sheetBg: `linear-gradient(180deg, #FFFFFF, #F4F5FA)`,
     setupBg: `radial-gradient(1200px 600px at 50% -10%, #ECE8FB, #F4F5FA)`,
-    navBg: "rgba(255,255,255,0.85)", scoreTrack: "rgba(20,22,50,0.08)",
+    navBg: "rgba(255,255,255,0.88)", scoreTrack: "rgba(120,100,200,0.14)",
     ...ACCENTS, ...PILLARS,
   },
 };
@@ -35,7 +35,13 @@ const C = { ...THEMES.dark };
 const applyTheme = (name) => Object.assign(C, THEMES[name] || THEMES.dark);
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
 const MOOD_LABELS = ["Rough", "Low", "Okay", "Good", "Great"];
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const fmtDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayKey = () => fmtDay(new Date()); // local calendar day
+const shiftDay = (key, n) => { const d = new Date(key + "T12:00:00"); d.setDate(d.getDate() + n); return fmtDay(d); };
+const CFG_KEYS = ["calorieGoal", "tdee", "deficit", "targetWeight", "targetDate", "profile", "deductBurned", "soundOn", "exerciseGoal", "stepGoal", "sleepGoal", "waterGoal"];
+const DAY_KEYS = ["exercise", "exerciseBurn", "exerciseMode", "steps", "weight", "mood", "sleepHours", "water"];
+const PLAN_KEYS = ["calorieGoal", "tdee", "deficit"];
+const pick = (o, ks) => Object.fromEntries(ks.filter(k => o && o[k] !== undefined).map(k => [k, o[k]]));
 const grad = `linear-gradient(135deg, ${C.coral}, ${C.violet})`;
 
 const tdeeOf = ({ sex, age, heightCm, weightKg, activity }) => {
@@ -118,7 +124,7 @@ async function askAI(system, content, max = 1000) {
 const _sw = {}, _sh = {}, _cd = {};
 Object.defineProperty(_sw, "v", { get: () => ({ position: "fixed", inset: 0, background: C.bg0 === "#0E1020" ? "rgba(8,9,18,0.6)" : "rgba(28,30,46,0.35)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }) });
 Object.defineProperty(_sh, "v", { get: () => ({ background: C.sheetBg, width: "100%", maxWidth: 470, height: "92vh", display: "flex", flexDirection: "column", borderTop: `1px solid ${C.stroke}`, borderRadius: "28px 28px 0 0", boxShadow: "0 -20px 60px rgba(0,0,0,0.35)" }) });
-Object.defineProperty(_cd, "v", { get: () => ({ background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 22, backdropFilter: "blur(20px)" }) });
+Object.defineProperty(_cd, "v", { get: () => ({ background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 22, backdropFilter: "blur(20px)", boxShadow: C.cardShadow }) });
 const mkProxy = (src) => new Proxy({}, { get: (_, k) => src.v[k], ownKeys: () => Reflect.ownKeys(src.v), getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }) });
 const sheetWrap = mkProxy(_sw);
 const sheet = mkProxy(_sh);
@@ -621,8 +627,8 @@ function Docs({ which, onClose }) {
 }
 
 function Tile({ label, value, sub, accent, icon, open, expanded, children }) {
-  return <div onClick={open} style={{ ...card, padding: 16, cursor: "pointer", position: "relative", overflow: "hidden" }}>
-    <div style={{ position: "absolute", top: -30, right: -30, width: 80, height: 80, borderRadius: "50%", background: accent, opacity: 0.12, filter: "blur(8px)" }} />
+  return <div onClick={open} style={{ ...card, padding: 16, cursor: "pointer", position: "relative", overflow: "hidden", ...(C.light ? { background: `linear-gradient(150deg, ${accent}33, rgba(255,255,255,0.8) 65%)`, border: `1px solid ${accent}40` } : {}) }}>
+    <div style={{ position: "absolute", top: -30, right: -30, width: 80, height: 80, borderRadius: "50%", background: accent, opacity: C.light ? 0.28 : 0.12, filter: "blur(8px)" }} />
     <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
     <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
     <div style={{ fontFamily: FONT, fontSize: 23, fontWeight: 800, color: C.ink, marginTop: 2 }}>{value}{sub && <span style={{ fontSize: 12, color: C.faint, fontWeight: 500, marginLeft: 4 }}>{sub}</span>}</div>
@@ -630,13 +636,18 @@ function Tile({ label, value, sub, accent, icon, open, expanded, children }) {
   </div>;
 }
 
+const DEFAULT_DATA = { calorieGoal: 1800, tdee: 0, deficit: 0, targetWeight: 53, targetDate: null, profile: null, deductBurned: true, soundOn: true, exercise: 0, exerciseGoal: 30, exerciseMode: "minutes", exerciseBurn: 0, steps: 0, stepGoal: 8000, weight: 0, mood: -1, sleepHours: 0, sleepGoal: 8, water: 0, waterGoal: 8 };
+
 export default function Loop({ account: authAccount = null, onLogout = null }) {
   const [loaded, setLoaded] = useState(false), [setupDone, setSetupDone] = useState(false);
-  const [data, setData] = useState({ calorieGoal: 1800, tdee: 0, deficit: 0, targetWeight: 53, targetDate: null, profile: null, deductBurned: true, soundOn: true, exercise: 0, exerciseGoal: 30, exerciseMode: "minutes", exerciseBurn: 0, steps: 0, stepGoal: 8000, weight: 0, mood: -1, sleepHours: 0, sleepGoal: 8, water: 0, waterGoal: 8 });
+  const [data, setData] = useState(DEFAULT_DATA);
   const [foods, setFoods] = useState([]), [favourites, setFavourites] = useState([]), [photos, setPhotos] = useState([]), [history, setHistory] = useState({}), [bodyLog, setBodyLog] = useState({}), [account, setAccount] = useState(null);
   const [modal, setModal] = useState(null), [active, setActive] = useState(null);
   const [docWhich, setDocWhich] = useState("how");
   const [theme, setTheme] = useState("dark");
+  const [viewDate, setViewDate] = useState(todayKey()), [slide, setSlide] = useState(0);
+  const liveCfg = useRef({}), skipRef = useRef(null), touch = useRef(null);
+  const isToday = viewDate === todayKey();
   applyTheme(theme);
 
   useEffect(() => { (async () => {
@@ -644,6 +655,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
     if (cfg) { setData(d => ({ ...d, ...cfg })); setSetupDone(true); sound.on = cfg.soundOn !== false; if (cfg.theme) { setTheme(cfg.theme); applyTheme(cfg.theme); } }
     setHistory(hist); setFavourites(favs); setPhotos(pics); setBodyLog(bl); setAccount(acc);
     if (td) { setData(d => ({ ...d, ...cfg, ...td.data })); setFoods(td.foods || []); }
+    liveCfg.current = { ...(cfg || {}), ...(td ? pick(td.data, CFG_KEYS) : {}) };
     setLoaded(true);
   })(); }, []);
 
@@ -653,47 +665,65 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const remaining = budget - caloriesEaten;
   const macroGoals = macroTargets(data.targetWeight, data.calorieGoal);
   const update = (k, v) => setData(d => ({ ...d, [k]: v }));
-  const streak = (() => { const h = { ...history, [todayKey()]: { calories: caloriesEaten } }; let n = 0; const d = new Date(); for (;;) { const k = d.toISOString().slice(0, 10); if (h[k] && h[k].calories > 0) { n++; d.setDate(d.getDate() - 1); } else break; } return n; })();
+  const streak = (() => { const h = isToday ? { ...history, [todayKey()]: { calories: caloriesEaten } } : history; let n = 0; const d = new Date(); for (;;) { const k = d.toISOString().slice(0, 10); if (h[k] && h[k].calories > 0) { n++; d.setDate(d.getDate() - 1); } else break; } return n; })();
 
-  useEffect(() => { if (!setupDone || !data.profile || !data.targetDate || !data.weight) return; const p = calcPlan(data.profile, data.weight, data.targetWeight, data.targetDate); if (p.goal !== data.calorieGoal) setData(d => ({ ...d, calorieGoal: p.goal, tdee: p.tdee, deficit: p.deficit })); }, [data.weight, data.targetWeight, data.targetDate, setupDone]);
-  useEffect(() => { if (!loaded || !setupDone) return; (async () => { await store.set("loop_today:" + todayKey(), { data, foods }); const nh = { ...history, [todayKey()]: { calories: caloriesEaten, weight: data.weight || null, steps: data.steps, exercise: data.exercise, calorieGoal: data.calorieGoal } }; setHistory(nh); await store.set("loop_history", nh); })(); }, [data, foods, loaded, setupDone]);
+  useEffect(() => { if (!isToday || !setupDone || !data.profile || !data.targetDate || !data.weight) return; const p = calcPlan(data.profile, data.weight, data.targetWeight, data.targetDate); if (p.goal !== data.calorieGoal) setData(d => ({ ...d, calorieGoal: p.goal, tdee: p.tdee, deficit: p.deficit })); }, [data.weight, data.targetWeight, data.targetDate, setupDone, viewDate]);
+  useEffect(() => { if (isToday && loaded) liveCfg.current = { ...liveCfg.current, ...pick(data, CFG_KEYS) }; }, [data, isToday, loaded]);
+  useEffect(() => { if (!loaded || !setupDone) return; if (skipRef.current && skipRef.current.data === data && skipRef.current.foods === foods) return; (async () => { await store.set("loop_today:" + viewDate, { data, foods }); const nh = { ...history, [viewDate]: { calories: caloriesEaten, weight: data.weight || null, steps: data.steps, exercise: data.exercise, calorieGoal: data.calorieGoal } }; setHistory(nh); await store.set("loop_history", nh); })(); }, [data, foods, loaded, setupDone]);
 
   const saveFavs = async (n) => { setFavourites(n); await store.set("loop_fav", n); };
   const savePhotos = async (n) => { setPhotos(n); await store.set("loop_photos", n); };
   const toggleFav = (e) => { const ex = favourites.some(f => f.name === e.name); saveFavs(ex ? favourites.filter(f => f.name !== e.name) : [...favourites, { name: e.name, calories: e.calories, protein: e.protein || 0, fat: e.fat || 0, fibre: e.fibre || 0, sugar: e.sugar || 0, netCarbs: e.netCarbs || 0 }]); };
   const saveBody = async (en) => { const n = { ...bodyLog, [en.date]: { vals: en.vals, analysis: en.analysis } }; setBodyLog(n); await store.set("loop_body", n); };
-  const toggleDeduct = async () => { const v = !data.deductBurned; setData(d => ({ ...d, deductBurned: v })); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, deductBurned: v }); };
-  const toggleSound = async () => { const v = !data.soundOn; sound.on = v; setData(d => ({ ...d, soundOn: v })); if (v) sound.tap(); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, soundOn: v }); };
+  const toggleDeduct = async () => { const v = !data.deductBurned; liveCfg.current = { ...liveCfg.current, deductBurned: v }; setData(d => ({ ...d, deductBurned: v })); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, deductBurned: v }); };
+  const toggleSound = async () => { const v = !data.soundOn; sound.on = v; liveCfg.current = { ...liveCfg.current, soundOn: v }; setData(d => ({ ...d, soundOn: v })); if (v) sound.tap(); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, soundOn: v }); };
   const toggleTheme = async () => { const v = theme === "dark" ? "light" : "dark"; setTheme(v); applyTheme(v); sound.tap(); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, theme: v }); };
   const resetAll = async () => { if (!window.confirm("Reset all data? This cannot be undone.")) return; try { const ks = await window.storage.list(); (ks?.keys || []).filter(k => k.startsWith("loop_")).forEach(k => window.storage.delete(k)); } catch {} setModal(null); setSetupDone(false); setFoods([]); setFavourites([]); setPhotos([]); setHistory({}); setBodyLog({}); if (!authAccount) setAccount(null); };
   const doLogin = async (acc) => { setAccount(acc); await store.set("loop_account", acc); setModal("profile"); };
   const doLogout = async () => { if (onLogout) return onLogout(); setAccount(null); try { window.storage.delete("loop_account"); } catch {} };
   const open = (m) => { sound.tap(); setModal(m); };
+  const goDay = async (key) => {
+    if (key > todayKey() || key === viewDate) return;
+    const rec = await store.get("loop_today:" + key, null), lc = liveCfg.current;
+    const nd = key === todayKey() ? { ...DEFAULT_DATA, ...lc, ...(rec ? rec.data : {}), ...pick(lc, ["deductBurned", "soundOn"]) } : { ...DEFAULT_DATA, ...lc, ...pick(rec?.data, [...DAY_KEYS, ...PLAN_KEYS]) };
+    const nf = rec?.foods || [];
+    skipRef.current = { data: nd, foods: nf };
+    setSlide(key < viewDate ? -1 : 1); setViewDate(key); setData(nd); setFoods(nf); setActive(null); sound.tap();
+  };
+  const onTS = e => { const t = e.touches[0]; touch.current = { x: t.clientX, y: t.clientY, tag: e.target.tagName }; };
+  const onTE = e => { const st = touch.current; touch.current = null; if (!st || ["INPUT", "TEXTAREA", "SELECT"].includes(st.tag)) return; const t = e.changedTouches[0], dx = t.clientX - st.x, dy = t.clientY - st.y; if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return; if (dx > 0) goDay(shiftDay(viewDate, -1)); else goDay(shiftDay(viewDate, 1)); };
+  useEffect(() => { const h = e => { if (modal || ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return; if (e.key === "ArrowLeft") goDay(shiftDay(viewDate, -1)); if (e.key === "ArrowRight") goDay(shiftDay(viewDate, 1)); }; window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h); });
 
   const score = Math.round(Math.min(caloriesEaten / budget, 1) * 18 + Math.min(data.exercise / data.exerciseGoal, 1) * 16 + Math.min(data.steps / data.stepGoal, 1) * 12 + (data.weight > 0 ? 10 : 0) + (data.mood >= 0 ? ((data.mood + 1) / 5) * 16 : 0) + Math.min(data.sleepHours / data.sleepGoal, 1) * 14 + Math.min(data.water / data.waterGoal, 1) * 14);
   const [celebrate, setCelebrate] = useState(0);
   const [fxIndex, setFxIndex] = useState(0);
   const wasHigh = useRef(false);
-  useEffect(() => { const high = score >= 80; if (high && !wasHigh.current) { sound.win(); setFxIndex(Math.floor(Math.random() * EFFECTS.length)); setCelebrate(c => c + 1); } wasHigh.current = high; }, [score >= 80]);
+  useEffect(() => { const high = score >= 80; if (!isToday) { wasHigh.current = high; return; } if (high && !wasHigh.current) { sound.win(); setFxIndex(Math.floor(Math.random() * EFFECTS.length)); setCelebrate(c => c + 1); } wasHigh.current = high; }, [score >= 80, viewDate]);
 
   const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');`;
   if (!loaded) return <div style={{ minHeight: "100vh", background: C.bg0, display: "flex", alignItems: "center", justifyContent: "center", color: C.faint, fontFamily: FONT }}><style>{FONTCSS}</style>Loading…</div>;
   if (!setupDone) return <><style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};background:${C.bg0};}`}</style><Setup initial={data.profile} onDone={async (cfg) => { setData(d => ({ ...d, ...cfg })); await store.set("loop_config", { calorieGoal: cfg.calorieGoal, tdee: cfg.tdee, deficit: cfg.deficit, targetWeight: cfg.targetWeight, targetDate: cfg.targetDate, weight: cfg.weight, profile: cfg.profile, deductBurned: data.deductBurned, soundOn: data.soundOn, theme }); setSetupDone(true); }} /></>;
 
-  const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const today = (isToday ? "Today · " : viewDate === shiftDay(todayKey(), -1) ? "Yesterday · " : "") + new Date(viewDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const arrow = { cursor: "pointer", fontSize: 22, lineHeight: "16px", color: C.soft, padding: "0 6px", userSelect: "none" };
   const toGo = +(data.weight - data.targetWeight).toFixed(1);
   const daysLeft = data.targetDate ? Math.max(0, Math.ceil((new Date(data.targetDate) - new Date()) / 86400000)) : null;
-  const nav = [["food", "🍎", "Food"], ["journal", "📸", "Journal"], ["body", "⚗️", "Body"], ["history", "📈", "Progress"], ["ai", "💬", "Coach"]];
+  const nav = [["food", "🍎", "Food"], ["journal", "📸", "Journal"], ["body", "🧍", "Body"], ["history", "📈", "Progress"], ["ai", "💬", "Coach"]];
 
   return <div>
-    <style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};color:${C.ink};background:${C.bg0};}input::placeholder{color:${C.faint};}::-webkit-scrollbar{width:0;}@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}.fu{animation:fadeUp .4s ease forwards;}input:focus{border-color:${C.violet} !important;}`}</style>
+    <style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};color:${C.ink};background:${C.bg0};}input::placeholder{color:${C.faint};}::-webkit-scrollbar{width:0;}@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}.fu{animation:fadeUp .4s ease forwards;}@keyframes slL{from{opacity:0;transform:translateX(-36px);}to{opacity:1;transform:none;}}@keyframes slR{from{opacity:0;transform:translateX(36px);}to{opacity:1;transform:none;}}.sl{animation:slL .28s ease forwards;}.sr{animation:slR .28s ease forwards;}input:focus{border-color:${C.violet} !important;}`}</style>
 
     <div style={{ minHeight: "100vh", background: C.appBg, transition: "background .4s ease" }}>
-      <div className="fu" style={{ maxWidth: 470, margin: "0 auto", padding: "0 18px 110px" }}>
+      <div key={viewDate} className={slide < 0 ? "sl" : slide > 0 ? "sr" : "fu"} onTouchStart={onTS} onTouchEnd={onTE} style={{ maxWidth: 470, margin: "0 auto", padding: "0 18px 110px" }}>
         <div style={{ paddingTop: "calc(env(safe-area-inset-top) + 38px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div>
-            <div style={{ fontSize: 12, color: C.faint, marginTop: 2 }}>{today}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 4, marginLeft: -6 }}>
+              <span onClick={() => goDay(shiftDay(viewDate, -1))} style={arrow}>‹</span>
+              <span style={{ fontSize: 12, color: isToday ? C.faint : C.violet, fontWeight: isToday ? 400 : 700 }}>{today}</span>
+              <span onClick={() => goDay(shiftDay(viewDate, 1))} style={{ ...arrow, opacity: isToday ? 0.25 : 1, pointerEvents: isToday ? "none" : "auto" }}>›</span>
+              {!isToday && <span onClick={() => goDay(todayKey())} style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#fff", background: grad, borderRadius: 99, padding: "3px 10px", cursor: "pointer" }}>Back to today</span>}
+            </div>
           </div>
           <div onClick={() => open("profile")} style={{ width: 42, height: 42, borderRadius: "50%", background: account ? grad : C.glass, border: `1px solid ${C.stroke}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: account ? "#fff" : C.soft, cursor: "pointer" }}>{account?.name ? account.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() : "◎"}</div>
         </div>
