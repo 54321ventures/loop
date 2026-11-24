@@ -702,7 +702,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
 
   const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');`;
   if (!loaded) return <div style={{ minHeight: "100vh", background: C.bg0, display: "flex", alignItems: "center", justifyContent: "center", color: C.faint, fontFamily: FONT }}><style>{FONTCSS}</style>Loading…</div>;
-  if (!setupDone) return <><style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};background:${C.bg0};}`}</style><Setup initial={data.profile} onDone={async (cfg) => { setData(d => ({ ...d, ...cfg })); await store.set("loop_config", { calorieGoal: cfg.calorieGoal, tdee: cfg.tdee, deficit: cfg.deficit, targetWeight: cfg.targetWeight, targetDate: cfg.targetDate, weight: cfg.weight, profile: cfg.profile, deductBurned: data.deductBurned, soundOn: data.soundOn, theme }); setSetupDone(true); }} /></>;
+  if (!setupDone) return <><style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none;}body{font-family:${FONT};background:${C.bg0};}`}</style><Setup initial={data.profile} onDone={async (cfg) => { setData(d => ({ ...d, ...cfg })); await store.set("loop_config", { calorieGoal: cfg.calorieGoal, tdee: cfg.tdee, deficit: cfg.deficit, targetWeight: cfg.targetWeight, targetDate: cfg.targetDate, weight: cfg.weight, profile: cfg.profile, deductBurned: data.deductBurned, soundOn: data.soundOn, theme }); setSetupDone(true); }} /></>;
 
   const today = (isToday ? "Today · " : viewDate === shiftDay(todayKey(), -1) ? "Yesterday · " : "") + new Date(viewDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   const arrow = { cursor: "pointer", fontSize: 24, lineHeight: "20px", color: C.soft, padding: "6px 12px", userSelect: "none", flexShrink: 0 };
@@ -711,10 +711,10 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const nav = [["food", "🍎", "Food"], ["journal", "📸", "Journal"], ["body", "🧍", "Body"], ["history", "📈", "Progress"], ["ai", "💬", "Coach"]];
 
   return <div>
-    <style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};color:${C.ink};background:${C.bg0};}input::placeholder{color:${C.faint};}::-webkit-scrollbar{width:0;}@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}.fu{animation:fadeUp .4s ease forwards;}@keyframes slL{from{opacity:0;transform:translateX(-36px);}to{opacity:1;transform:none;}}@keyframes slR{from{opacity:0;transform:translateX(36px);}to{opacity:1;transform:none;}}.sl{animation:slL .28s ease forwards;}.sr{animation:slR .28s ease forwards;}input:focus{border-color:${C.violet} !important;}`}</style>
+    <style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};color:${C.ink};background:${C.bg0};}input::placeholder{color:${C.faint};}::-webkit-scrollbar{width:0;}@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}.fu{animation:fadeUp .4s ease forwards;}@keyframes slL{from{opacity:0;transform:translateX(-20px);}to{opacity:1;transform:none;}}@keyframes slR{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:none;}}.sl{animation:slL .28s ease forwards;}.sr{animation:slR .28s ease forwards;}input:focus{border-color:${C.violet} !important;}`}</style>
 
-    <div style={{ minHeight: "100vh", background: C.appBg, transition: "background .4s ease" }}>
-      <div key={viewDate} className={slide < 0 ? "sl" : slide > 0 ? "sr" : "fu"} onTouchStart={onTS} onTouchEnd={onTE} style={{ maxWidth: 470, margin: "0 auto", padding: "0 18px 110px" }}>
+    <div style={{ minHeight: "100vh", background: C.appBg, transition: "background .4s ease", overflowX: "clip", maxWidth: "100vw" }}>
+      <div key={viewDate} className={slide < 0 ? "sl" : slide > 0 ? "sr" : "fu"} onTouchStart={onTS} onTouchEnd={onTE} style={{ touchAction: "pan-y pinch-zoom", maxWidth: 470, margin: "0 auto", padding: "0 18px 110px" }}>
         <div style={{ paddingTop: "calc(env(safe-area-inset-top) + 38px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div>
