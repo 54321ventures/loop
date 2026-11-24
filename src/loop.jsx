@@ -704,8 +704,8 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   if (!loaded) return <div style={{ minHeight: "100vh", background: C.bg0, display: "flex", alignItems: "center", justifyContent: "center", color: C.faint, fontFamily: FONT }}><style>{FONTCSS}</style>Loading…</div>;
   if (!setupDone) return <><style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};background:${C.bg0};}`}</style><Setup initial={data.profile} onDone={async (cfg) => { setData(d => ({ ...d, ...cfg })); await store.set("loop_config", { calorieGoal: cfg.calorieGoal, tdee: cfg.tdee, deficit: cfg.deficit, targetWeight: cfg.targetWeight, targetDate: cfg.targetDate, weight: cfg.weight, profile: cfg.profile, deductBurned: data.deductBurned, soundOn: data.soundOn, theme }); setSetupDone(true); }} /></>;
 
-  const today = (isToday ? "Today · " : viewDate === shiftDay(todayKey(), -1) ? "Yesterday · " : "") + new Date(viewDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-  const arrow = { cursor: "pointer", fontSize: 22, lineHeight: "16px", color: C.soft, padding: "0 6px", userSelect: "none" };
+  const today = (isToday ? "Today · " : viewDate === shiftDay(todayKey(), -1) ? "Yesterday · " : "") + new Date(viewDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const arrow = { cursor: "pointer", fontSize: 24, lineHeight: "20px", color: C.soft, padding: "6px 12px", userSelect: "none", flexShrink: 0 };
   const toGo = +(data.weight - data.targetWeight).toFixed(1);
   const daysLeft = data.targetDate ? Math.max(0, Math.ceil((new Date(data.targetDate) - new Date()) / 86400000)) : null;
   const nav = [["food", "🍎", "Food"], ["journal", "📸", "Journal"], ["body", "🧍", "Body"], ["history", "📈", "Progress"], ["ai", "💬", "Coach"]];
@@ -718,14 +718,15 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
         <div style={{ paddingTop: "calc(env(safe-area-inset-top) + 38px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 4, marginLeft: -6 }}>
-              <span onClick={() => goDay(shiftDay(viewDate, -1))} style={arrow}>‹</span>
-              <span style={{ fontSize: 12, color: isToday ? C.faint : C.violet, fontWeight: isToday ? 400 : 700 }}>{today}</span>
-              <span onClick={() => goDay(shiftDay(viewDate, 1))} style={{ ...arrow, opacity: isToday ? 0.25 : 1, pointerEvents: isToday ? "none" : "auto" }}>›</span>
-              {!isToday && <span onClick={() => goDay(todayKey())} style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: "#fff", background: grad, borderRadius: 99, padding: "3px 10px", cursor: "pointer" }}>Back to today</span>}
-            </div>
           </div>
           <div onClick={() => open("profile")} style={{ width: 42, height: 42, borderRadius: "50%", background: account ? grad : C.glass, border: `1px solid ${C.stroke}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: account ? "#fff" : C.soft, cursor: "pointer" }}>{account?.name ? account.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() : "◎"}</div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 10, whiteSpace: "nowrap" }}>
+          <span onClick={() => goDay(shiftDay(viewDate, -1))} style={arrow}>‹</span>
+          <span style={{ fontSize: 13, color: isToday ? C.soft : C.violet, fontWeight: isToday ? 500 : 700, minWidth: 0 }}>{today}</span>
+          <span onClick={() => goDay(shiftDay(viewDate, 1))} style={{ ...arrow, opacity: isToday ? 0.25 : 1, pointerEvents: isToday ? "none" : "auto" }}>›</span>
+          {!isToday && <span onClick={() => goDay(todayKey())} style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: grad, borderRadius: 99, padding: "5px 12px", cursor: "pointer", flexShrink: 0 }}>Today</span>}
         </div>
 
         <div onClick={() => open("score")} style={{ ...card, padding: 20, marginTop: 18, display: "flex", alignItems: "center", gap: 18, cursor: "pointer" }}>
