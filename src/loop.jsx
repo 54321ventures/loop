@@ -324,8 +324,11 @@ function Setup({ initial, onDone }) {
   </div>;
 }
 
-function FoodLog({ goal, macroGoals, entries, favourites, onAdd, onRemove, onToggleFav, onClose }) {
-  const [desc, setDesc] = useState(""), [loading, setLoading] = useState(false), [status, setStatus] = useState(""), [manualCal, setManualCal] = useState(""), [preview, setPreview] = useState(null), [meal, setMeal] = useState("Breakfast");
+function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd, onRemove, onToggleFav, onClose }) {
+  const [desc, setDesc] = useState(""), [loading, setLoading] = useState(false), [status, setStatus] = useState(""), [manualCal, setManualCal] = useState(""), [preview, setPreview] = useState(null), [meal, setMeal] = useState("Breakfast"), [q, setQ] = useState(""), [added, setAdded] = useState("");
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = terms.length ? pastFoods.filter(f => terms.every(t => f.name.toLowerCase().includes(t))).slice(0, 8) : pastFoods.slice(0, 5);
+  const addPast = (f) => { onAdd({ id: Date.now(), name: f.name, calories: f.calories, protein: f.protein || 0, fat: f.fat || 0, fibre: f.fibre || 0, sugar: f.sugar || 0, netCarbs: f.netCarbs || 0, meal }); setAdded(`Added ${f.name} to ${meal} ✓`); setQ(""); setTimeout(() => setAdded(""), 2500); };
   const sum = (k) => entries.reduce((s, e) => s + (e[k] || 0), 0);
   const total = sum("calories"), remaining = goal - total;
   const macros = { protein: sum("protein"), fat: sum("fat"), netCarbs: sum("netCarbs"), fibre: sum("fibre"), sugar: sum("sugar") };
@@ -341,7 +344,7 @@ function FoodLog({ goal, macroGoals, entries, favourites, onAdd, onRemove, onTog
   const addManual = () => { if (!desc.trim() || !manualCal) { setStatus("Need a food name and kcal."); return; } onAdd({ id: Date.now(), name: desc, calories: Math.round(+manualCal) || 0, protein: 0, fat: 0, fibre: 0, sugar: 0, netCarbs: 0, meal }); setDesc(""); setManualCal(""); setStatus(""); };
   const isFav = (n) => favourites.some(f => f.name === n);
   const macroChip = (label, v, g, col) => <div style={{ flex: "1 1 84px", minWidth: 78, ...card, padding: "10px 12px" }}><div style={{ fontSize: 11, color: C.faint, fontWeight: 600 }}>{label}</div><div style={{ fontSize: 16, color: C.ink, fontWeight: 700, margin: "2px 0 6px" }}>{v}<span style={{ fontSize: 11, color: C.faint, fontWeight: 500 }}> /{g}g</span></div><Bar value={v} max={g} color={col} /></div>;
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={sheet}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet }}>
     <Head title="Food" onClose={onClose} />
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
       <div style={{ ...card, padding: 18, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -357,6 +360,19 @@ function FoodLog({ goal, macroGoals, entries, favourites, onAdd, onRemove, onTog
         {macroChip("Sugar", macros.sugar, macroGoals.sugar, C.coral)}
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 14, background: C.glass, borderRadius: 99, padding: 4, border: `1px solid ${C.stroke}` }}>{MEALS.map(m => <button key={m} onClick={() => setMeal(m)} style={{ flex: 1, border: "none", background: meal === m ? grad : "transparent", color: meal === m ? "#fff" : C.soft, padding: "8px 0", fontSize: 12, fontWeight: 600, borderRadius: 99, cursor: "pointer", fontFamily: FONT }}>{m}</button>)}</div>
+      <div style={{ marginBottom: 16 }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 Search foods you've logged…" style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, fontFamily: FONT }} />
+        {added && <div style={{ fontSize: 12.5, color: C.lime, marginTop: 8, fontWeight: 600 }}>{added}</div>}
+        {pastFoods.length > 0 && <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>{terms.length ? "Matches" : "Recent"}</div>
+          {matches.map(f => <div key={f.name} onClick={() => addPast(f)} style={{ ...card, display: "flex", alignItems: "center", padding: "10px 14px", marginBottom: 8, cursor: "pointer" }}>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, color: C.ink, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div><div style={{ fontSize: 11, color: C.faint, marginTop: 2 }}>{f.calories} kcal · last {new Date(f.date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}{f.count > 1 ? ` · logged ${f.count}×` : ""}</div></div>
+            <div style={{ background: grad, color: "#fff", borderRadius: 99, padding: "6px 14px", fontSize: 12, fontWeight: 700, marginLeft: 10 }}>＋ {meal}</div>
+          </div>)}
+          {terms.length > 0 && matches.length === 0 && <div style={{ fontSize: 12.5, color: C.faint }}>No matches — describe it below to estimate.</div>}
+        </div>}
+        {pastFoods.length === 0 && terms.length > 0 && <div style={{ fontSize: 12.5, color: C.faint, marginTop: 8 }}>Nothing logged yet — foods you add will show up here.</div>}
+      </div>
       <PhotoBtns onPhoto={onPhoto} idns="food" />
       {preview && <img src={preview} alt="" style={{ width: "100%", margin: "14px 0", maxHeight: 140, objectFit: "cover", borderRadius: 16, border: `1px solid ${C.stroke}` }} />}
       <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe a food…" onKeyDown={e => e.key === "Enter" && estimate()} style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, margin: "14px 0", fontFamily: FONT }} />
@@ -395,7 +411,7 @@ function BodyComp({ onSaveEntry, onClose }) {
       const text = await askAI("Interpret body-composition scale readings (Omron, Hume, Tanita) for a general adult. Two labelled parts: 'What this means' (each metric vs typical healthy range, plain English) and 'How to improve' (3-5 specific, safe, actionable tips). End: estimates, not a diagnosis; see a professional. Never alarming.", "My readings: " + readout, 1200);
       setAnalysis(text); onSaveEntry({ date: todayKey(), vals, analysis: text }); } catch (e) { setAnalysis(e.message); } finally { setLoading(false); }
   };
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={sheet}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet }}>
     <Head title="Body" onClose={onClose} />
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
       <div style={{ fontSize: 13, color: C.soft, marginBottom: 16, lineHeight: 1.5 }}>Enter readings from your smart scale. Fill only what you have — saved figures chart over time in Progress.</div>
@@ -441,7 +457,7 @@ function Progress({ history, bodyLog, data, onClose }) {
   let weightStatus = null;
   if (data.weight && prof.heightCm) { const base = evalStatus(bmiOf(data.weight, prof.heightCm), bandFor("bmi")); const toGoal = +(data.weight - data.targetWeight).toFixed(1); const range = healthyRange(prof.heightCm); let detail = toGoal > 0 ? `${toGoal}kg to your ${data.targetWeight}kg goal` : toGoal < 0 ? `${Math.abs(toGoal)}kg below goal` : "At your goal"; detail += ` · healthy ${range.min}–${range.max}kg`; weightStatus = base ? { ...base, detail, pos: (data.weight - range.min) / (range.max - range.min) } : null; }
   const Section = ({ t }) => <div style={{ fontSize: 11, color: C.faint, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", margin: "6px 2px 12px" }}>{t}</div>;
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "90vh" }}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "90vh" }}>
     <Head title="Progress" onClose={onClose} />
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
       <Section t="Weight & calories" />
@@ -462,7 +478,7 @@ function Journal({ photos, onAdd, onRemove, onClose }) {
   const [loading, setLoading] = useState(false);
   const onPhoto = async (e) => { const f = e.target.files?.[0]; if (!f) return; setLoading(true); try { const b64 = await fileToB64(f); onAdd({ id: Date.now(), date: todayKey(), src: `data:image/jpeg;base64,${b64}` }); } catch {} finally { setLoading(false); e.target.value = ""; } };
   const sorted = [...photos].sort((a, b) => b.id - a.id);
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={sheet}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet }}>
     <Head title="Journal" onClose={onClose} />
     <div style={{ padding: "18px 20px", borderBottom: `1px solid ${C.stroke}` }}><PhotoBtns onPhoto={onPhoto} idns="jr" /><div style={{ fontSize: 11, color: C.faint, marginTop: 9, textAlign: "center" }}>{loading ? "Saving…" : "A photo a week tells the story"}</div></div>
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>{sorted.length === 0 && <div style={{ textAlign: "center", color: C.faint, fontSize: 14, marginTop: 24 }}>No photos yet</div>}
@@ -480,7 +496,7 @@ function Chat({ data, onClose }) {
       const res = await aiFetch({ max_tokens: 1000, system: ctx, messages: [...messages.slice(1).map(m => ({ role: m.role, content: m.text })), { role: "user", content: u }] });
       const json = await res.json(); setMessages(m => [...m, { role: "assistant", text: json.content?.find(b => b.type === "text")?.text || "Try again?" }]); } catch { setMessages(m => [...m, { role: "assistant", text: "Connection issue — try again." }]); } setLoading(false);
   };
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "80vh" }}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "80vh" }}>
     <Head title="Coach" onClose={onClose} />
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>{messages.map((m, i) => <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "82%", background: m.role === "user" ? grad : C.glass, border: m.role === "user" ? "none" : `1px solid ${C.stroke}`, color: m.role === "user" ? "#fff" : C.ink, padding: "11px 14px", borderRadius: 18, fontSize: 14.5, lineHeight: 1.5 }}>{m.text}</div>)}{loading && <div style={{ color: C.faint, fontSize: 13 }}>…</div>}<div ref={bottomRef} /></div>
     <div style={{ padding: "12px 20px", borderTop: `1px solid ${C.stroke}`, display: "flex", gap: 10, alignItems: "center" }}><input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Message…" style={{ flex: 1, background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 99, padding: "11px 16px", fontSize: 15, outline: "none", color: C.ink, fontFamily: FONT }} /><button onClick={send} style={{ border: "none", background: grad, color: "#fff", width: 42, height: 42, borderRadius: "50%", fontSize: 18, cursor: "pointer" }}>→</button></div>
@@ -489,7 +505,7 @@ function Chat({ data, onClose }) {
 
 function ScoreInfo({ score, onCelebrate, onClose }) {
   const rows = [["🍎", "Calories within budget", 18], ["🏃", "Exercise", 16], ["😊", "Mood logged", 16], ["😴", "Sleep", 14], ["💧", "Water", 14], ["👟", "Steps", 12], ["⚖️", "Weight logged", 10]];
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "auto", maxHeight: "84vh" }}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "auto", maxHeight: "84vh" }}>
     <Head title="Your Loop Score" onClose={onClose} />
     <div style={{ padding: "22px 20px", overflowY: "auto" }}>
       <div style={{ textAlign: "center", marginBottom: 14 }}><Ring score={score} /></div>
@@ -507,7 +523,7 @@ function Profile({ data, history, streak, account, theme, onToggleTheme, onLogin
   const range = p.heightCm ? healthyRange(p.heightCm) : null, bmi = (now && p.heightCm) ? bmiOf(now, p.heightCm).toFixed(1) : "—";
   const initials = account?.name ? account.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() : null;
   const row = (l, v) => <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${C.stroke}`, fontSize: 14 }}><span style={{ color: C.soft }}>{l}</span><span style={{ color: C.ink, fontWeight: 600 }}>{v}</span></div>;
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={sheet}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet }}>
     <Head title="Profile" onClose={onClose} />
     <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
       <div style={{ textAlign: "center", marginBottom: 18 }}>
@@ -546,7 +562,7 @@ function Login({ onAuth, onClose }) {
   const valid = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   const submit = () => { if (mode === "signup" && !name.trim()) { setErr("Please enter your name."); return; } if (!valid(email)) { setErr("Please enter a valid email."); return; } if (pw.length < 6) { setErr("Password must be 6+ characters."); return; } sound.add(); onAuth({ name: name.trim() || email.split("@")[0], email: email.trim().toLowerCase() }); };
   const inp = { width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, fontFamily: FONT, outline: "none", color: C.ink, marginBottom: 14 };
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "auto", maxHeight: "88vh" }}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "auto", maxHeight: "88vh" }}>
     <Head title={mode === "signin" ? "Welcome back" : "Create account"} onClose={onClose} />
     <div style={{ padding: "20px", overflowY: "auto" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 18, background: C.glass, borderRadius: 99, padding: 4, border: `1px solid ${C.stroke}` }}>{[["signin", "Sign in"], ["signup", "Sign up"]].map(([m, l]) => <button key={m} onClick={() => { setMode(m); setErr(""); }} style={{ flex: 1, border: "none", background: mode === m ? grad : "transparent", color: mode === m ? "#fff" : C.soft, padding: "10px", fontWeight: 700, fontSize: 13, borderRadius: 99, cursor: "pointer", fontFamily: FONT }}>{l}</button>)}</div>
@@ -565,7 +581,7 @@ function Docs({ which, onClose }) {
   const H = ({ children }) => <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, margin: "18px 0 8px", letterSpacing: "0.02em" }}>{children}</div>;
   const P = ({ children }) => <p style={{ fontSize: 13.5, color: C.soft, lineHeight: 1.65, marginBottom: 10 }}>{children}</p>;
   const title = which === "privacy" ? "Privacy Policy" : which === "terms" ? "Terms of Service" : "How Loop works";
-  return <div style={sheetWrap} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "90vh" }}>
+  return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet, height: "90vh" }}>
     <Head title={title} onClose={onClose} />
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px 40px" }}>
       <div style={{ fontSize: 11, color: C.faint, marginBottom: 6 }}>Last updated · {today}</div>
@@ -681,6 +697,15 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const resetAll = async () => { if (!window.confirm("Reset all data? This cannot be undone.")) return; try { const ks = await window.storage.list(); (ks?.keys || []).filter(k => k.startsWith("loop_")).forEach(k => window.storage.delete(k)); } catch {} setModal(null); setSetupDone(false); setFoods([]); setFavourites([]); setPhotos([]); setHistory({}); setBodyLog({}); if (!authAccount) setAccount(null); };
   const doLogin = async (acc) => { setAccount(acc); await store.set("loop_account", acc); setModal("profile"); };
   const doLogout = async () => { if (onLogout) return onLogout(); setAccount(null); try { window.storage.delete("loop_account"); } catch {} };
+  const [pastFoods, setPastFoods] = useState([]);
+  useEffect(() => { if (modal !== "food") return; let live = true; (async () => {
+    const map = new Map();
+    for (const k of ((await window.storage.list())?.keys || []).filter(k => k.startsWith("loop_today:"))) {
+      const date = k.slice("loop_today:".length), rec = await store.get(k, null);
+      for (const f of rec?.foods || []) { const name = (f.name || "").trim(), id = name.toLowerCase(); if (!name) continue; const cur = map.get(id); if (!cur) map.set(id, { ...f, name, date, count: 1 }); else { cur.count++; if (date >= cur.date) Object.assign(cur, { ...f, name, date, count: cur.count }); } }
+    }
+    if (live) setPastFoods([...map.values()].sort((a, b) => b.date.localeCompare(a.date) || b.count - a.count));
+  })(); return () => { live = false; }; }, [modal]);
   const open = (m) => { sound.tap(); setModal(m); };
   const goDay = async (key) => {
     if (key > todayKey() || key === viewDate) return;
@@ -786,7 +811,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
       {nav.map(([m, icon, l]) => <button key={m} onClick={() => open(m)} style={{ flex: 1, border: "none", background: "transparent", color: C.soft, padding: "12px 0 14px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: FONT, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}><span style={{ fontSize: 19 }}>{icon}</span>{l}</button>)}
     </div>
 
-    {modal === "food" && <FoodLog goal={budget} macroGoals={macroGoals} entries={foods} favourites={favourites} onAdd={f => { sound.add(); setFoods(p => [...p, f]); }} onRemove={id => setFoods(p => p.filter(e => e.id !== id))} onToggleFav={toggleFav} onClose={() => setModal(null)} />}
+    {modal === "food" && <FoodLog goal={budget} macroGoals={macroGoals} entries={foods} favourites={favourites} pastFoods={pastFoods} onAdd={f => { sound.add(); setFoods(p => [...p, f]); }} onRemove={id => setFoods(p => p.filter(e => e.id !== id))} onToggleFav={toggleFav} onClose={() => setModal(null)} />}
     {modal === "journal" && <Journal photos={photos} onAdd={p => savePhotos([...photos, p])} onRemove={id => savePhotos(photos.filter(x => x.id !== id))} onClose={() => setModal(null)} />}
     {modal === "body" && <BodyComp onSaveEntry={saveBody} onClose={() => setModal(null)} />}
     {modal === "history" && <Progress history={history} bodyLog={bodyLog} data={data} onClose={() => setModal(null)} />}
