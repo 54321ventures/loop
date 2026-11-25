@@ -34,21 +34,21 @@ const THEMES = {
 const hex2rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const tint = (h, t) => { const [r, g, b] = hex2rgb(h); const m = (v) => Math.round(v + (255 - v) * t); return `rgb(${m(r)},${m(g)},${m(b)})`; };
 const GRAD = (a, b) => `linear-gradient(135deg, ${a}, ${b})`;
-const THEME_DEFAULTS = { font: "'Sora'", grad: GRAD("#FF7A8A", "#8B7CFF"), radius: 22, blur: "blur(20px)", cardBorder: null, cardShadow: "none", blob: 0.12, light: false, tileBg: null, tileBorder: null, tileInk: null };
+const THEME_DEFAULTS = { font: "'Sora'", grad: GRAD("#FF7A8A", "#8B7CFF"), radius: 22, blur: "blur(20px)", cardBorder: null, cardShadow: "none", blob: 0.12, light: false, tileBg: null, tileBorder: null, tileInk: null, tileExtra: null, ring: null, ringGlow: "drop-shadow(0 0 6px rgba(139,124,255,0.5))" };
 THEMES.dark = { ...THEME_DEFAULTS, ...THEMES.dark };
 THEMES.light = { ...THEME_DEFAULTS, ...THEMES.light, blob: 0.28,
   tileBg: (a) => `linear-gradient(150deg, ${a}33, rgba(255,255,255,0.8) 65%)`, tileBorder: (a) => `1px solid ${a}40` };
-// Sage — warm paper, botanical greens and clay, soft serif. Flat, calm, journal-like.
-THEMES.sage = { ...THEME_DEFAULTS, light: true, font: "'Fraunces',Georgia", grad: GRAD("#6F9A6B", "#D4A24C"), radius: 20, blur: "none", blob: 0.18,
-  bg0: "#F6F1E7", bg1: "#FBF8F1", bg2: "#EFE8D8",
-  glass: "rgba(255,253,247,0.92)", glassBright: "#FFFFFF", stroke: "rgba(110,98,60,0.18)", cardShadow: "0 6px 18px rgba(120,100,50,0.10)",
+// Sage — flat warm paper, botanical greens and clay, soft serif. Stationery-like: no glow, no gradients, coloured "spines" on tiles.
+THEMES.sage = { ...THEME_DEFAULTS, light: true, font: "'Fraunces',Georgia", grad: GRAD("#5E8C5A", "#5E8C5A"), radius: 12, blur: "none", blob: 0, ring: ["#5E8C5A", "#5E8C5A", "#5E8C5A"], ringGlow: "none",
+  bg0: "#F4EEE1", bg1: "#FBF8F0", bg2: "#ECE4D2",
+  glass: "#FBF8F0", glassBright: "#FFFFFF", stroke: "rgba(110,98,60,0.22)", cardBorder: "1px solid rgba(110,98,60,0.24)", cardShadow: "none",
   ink: "#2E3A2B", soft: "#667060", faint: "#98A08E",
-  appBg: `radial-gradient(900px 480px at 10% -8%, #E6EBCF, transparent 62%), radial-gradient(700px 480px at 100% 0%, #F7DFC9, transparent 58%), linear-gradient(180deg, #FAF6EC, #F3ECDC)`,
-  sheetBg: `linear-gradient(180deg, #FFFDF8, #F6F1E7)`, setupBg: `radial-gradient(1200px 600px at 50% -10%, #E6EBCF, #F6F1E7)`,
-  navBg: "rgba(250,246,236,0.94)", scoreTrack: "rgba(110,98,60,0.13)",
-  coral: "#D9826A", violet: "#8E86B8", cyan: "#5BA9A3", lime: "#6F9A6B", amber: "#D9A33F", rose: "#CB7A92", sky: "#6C9BB4",
-  food: "#D9826A", exercise: "#D9A33F", steps: "#6C9BB4", weight: "#8E86B8", mood: "#CB7A92", sleep: "#7B76B5", water: "#5BA9A3",
-  tileBg: (a) => `linear-gradient(160deg, ${a}2E, ${a}12)`, tileBorder: (a) => `1px solid ${a}35` };
+  appBg: `linear-gradient(180deg, #F6F0E3, #F2EBDB)`,
+  sheetBg: "#F8F3E8", setupBg: "#F4EEE1",
+  navBg: "rgba(248,243,232,0.96)", scoreTrack: "rgba(110,98,60,0.14)",
+  coral: "#C46F52", violet: "#8A83B0", cyan: "#4F9A94", lime: "#5E8C5A", amber: "#C99A2E", rose: "#BD6F86", sky: "#5F8FAA",
+  food: "#C46F52", exercise: "#C99A2E", steps: "#5F8FAA", weight: "#8A83B0", mood: "#BD6F86", sleep: "#7B76B5", water: "#4F9A94",
+  tileBg: (a) => tint(a, 0.84), tileBorder: (a) => `1px solid ${a}4D`, tileExtra: (a) => ({ boxShadow: `inset 5px 0 0 ${a}` }) };
 // Pop — bold & playful: butter background, thick ink outlines, hard offset shadows, bright colour.
 const INK = "#1B1730";
 THEMES.pop = { ...THEME_DEFAULTS, light: true, font: "'Space Grotesk'", grad: GRAD("#FF5C8A", "#7C5CFF"), radius: 18, blur: "none", blob: 0,
@@ -72,7 +72,16 @@ THEMES.ember = { ...THEME_DEFAULTS, light: false, font: "'Manrope'", grad: GRAD(
   coral: "#FF7A59", violet: "#B79BFF", cyan: "#5CCFC0", lime: "#A6D96A", amber: "#FFB84D", rose: "#FF8FA3", sky: "#6FA8E8",
   food: "#FF7A59", exercise: "#FFB020", steps: "#5FA8F0", weight: "#B79BFF", mood: "#F26FA8", sleep: "#8A7BF0", water: "#3CC4C4",
   tileBg: (a) => `linear-gradient(150deg, ${a}30, rgba(255,240,225,0.03) 70%)`, tileBorder: (a) => `1px solid ${a}38` };
-const THEME_LIST = [["dark", "Twilight"], ["light", "Pastel"], ["sage", "Sage"], ["pop", "Pop"], ["ember", "Ember"]];
+// Mono — minimalist charcoal on off-white. Hairlines, no colour, no shadows; brick red only for warnings.
+THEMES.mono = { ...THEME_DEFAULTS, light: true, font: "'Inter'", grad: GRAD("#2A2A2A", "#3D3D3D"), radius: 14, blur: "none", blob: 0, ring: ["#222222", "#2E2E2E", "#555555"], ringGlow: "none",
+  bg0: "#F2F0EB", bg1: "#F7F5F0", bg2: "#E9E6DF",
+  glass: "#FAF9F6", glassBright: "#FFFFFF", stroke: "#DAD6CD", cardBorder: "1px solid #DAD6CD", cardShadow: "none",
+  ink: "#222222", soft: "#5C5C58", faint: "#9A978F",
+  appBg: `linear-gradient(180deg, #F2F0EB, #F2F0EB)`, sheetBg: "#F7F5F0", setupBg: "#F2F0EB",
+  navBg: "rgba(247,245,240,0.95)", scoreTrack: "rgba(34,34,34,0.09)",
+  coral: "#B4533B", violet: "#3A3A38", cyan: "#6A6A66", lime: "#222222", amber: "#9B9B94", rose: "#4F4F4B", sky: "#6A6A66",
+  food: "#2A2A2A", exercise: "#4A4A47", steps: "#6A6A66", weight: "#3A3A38", mood: "#5C5C58", sleep: "#7A7A75", water: "#8A8A84" };
+const THEME_LIST = [["dark", "Twilight"], ["light", "Pastel"], ["sage", "Sage"], ["pop", "Pop"], ["ember", "Ember"], ["mono", "Mono"]];
 const C = { ...THEMES.dark };
 const applyTheme = (name) => Object.assign(C, THEMES[name] || THEMES.dark);
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
@@ -306,9 +315,9 @@ function Celebration({ index, onDone }) {
 function Ring({ score, size = 132 }) {
   const r = (size - 18) / 2, c = 2 * Math.PI * r, off = c - (Math.min(score, 100) / 100) * c, id = "lr" + size;
   return <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-    <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={C.coral} /><stop offset="0.5" stopColor={C.rose} /><stop offset="1" stopColor={C.violet} /></linearGradient></defs>
+    <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={(C.ring || [C.coral, C.rose, C.violet])[0]} /><stop offset="0.5" stopColor={(C.ring || [C.coral, C.rose, C.violet])[1]} /><stop offset="1" stopColor={(C.ring || [C.coral, C.rose, C.violet])[2]} /></linearGradient></defs>
     <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.scoreTrack} strokeWidth="9" />
-    <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${id})`} strokeWidth="9" strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" style={{ transform: "rotate(-90deg)", transformOrigin: "center", transition: "stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1)", filter: "drop-shadow(0 0 6px rgba(139,124,255,0.5))" }} />
+    <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${id})`} strokeWidth="9" strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" style={{ transform: "rotate(-90deg)", transformOrigin: "center", transition: "stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1)", filter: C.ringGlow }} />
     <text x="50%" y="48%" textAnchor="middle" fontSize={size * 0.3} fontWeight="800" fill={C.ink} fontFamily={FONT}>{score}</text>
     <text x="50%" y="64%" textAnchor="middle" fontSize="11" fill={C.soft} fontFamily={FONT} letterSpacing="2">LOOP</text>
   </svg>;
@@ -694,7 +703,7 @@ function Docs({ which, onClose }) {
 }
 
 function Tile({ label, value, sub, accent, icon, open, expanded, children }) {
-  return <div onClick={open} style={{ ...card, padding: 16, cursor: "pointer", position: "relative", overflow: "hidden", ...(C.tileBg ? { background: C.tileBg(accent), border: C.tileBorder(accent) } : {}) }}>
+  return <div onClick={open} style={{ ...card, padding: 16, cursor: "pointer", position: "relative", overflow: "hidden", ...(C.tileBg ? { background: C.tileBg(accent), border: C.tileBorder(accent) } : {}), ...(C.tileExtra ? C.tileExtra(accent) : {}) }}>
     <div style={{ position: "absolute", top: -30, right: -30, width: 80, height: 80, borderRadius: "50%", background: accent, opacity: C.blob, filter: "blur(8px)" }} />
     <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
     <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
@@ -777,7 +786,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const wasHigh = useRef(false);
   useEffect(() => { const high = score >= 80; if (!isToday) { wasHigh.current = high; return; } if (high && !wasHigh.current) { sound.win(); setFxIndex(Math.floor(Math.random() * EFFECTS.length)); setCelebrate(c => c + 1); } wasHigh.current = high; }, [score >= 80, viewDate]);
 
-  const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Fraunces:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');${themeVars()}`;
+  const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Fraunces:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');${themeVars()}`;
   if (!loaded) return <div style={{ minHeight: "100vh", background: C.bg0, display: "flex", alignItems: "center", justifyContent: "center", color: C.faint, fontFamily: FONT }}><style>{FONTCSS}</style>Loading…</div>;
   if (!setupDone) return <><style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none;}body{font-family:${FONT};background:${C.bg0};}`}</style><Setup initial={data.profile} onDone={async (cfg) => { setData(d => ({ ...d, ...cfg })); await store.set("loop_config", { calorieGoal: cfg.calorieGoal, tdee: cfg.tdee, deficit: cfg.deficit, targetWeight: cfg.targetWeight, targetDate: cfg.targetDate, weight: cfg.weight, profile: cfg.profile, deductBurned: data.deductBurned, soundOn: data.soundOn, theme }); setSetupDone(true); }} /></>;
 
