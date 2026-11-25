@@ -31,6 +31,37 @@ const THEMES = {
     ...ACCENTS, ...PILLARS,
   },
 };
+const hex2rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const tint = (h, t) => { const [r, g, b] = hex2rgb(h); const m = (v) => Math.round(v + (255 - v) * t); return `rgb(${m(r)},${m(g)},${m(b)})`; };
+const GRAD = (a, b) => `linear-gradient(135deg, ${a}, ${b})`;
+const THEME_DEFAULTS = { font: "'Sora'", grad: GRAD("#FF7A8A", "#8B7CFF"), radius: 22, blur: "blur(20px)", cardBorder: null, cardShadow: "none", blob: 0.12, light: false, tileBg: null, tileBorder: null, tileInk: null };
+THEMES.dark = { ...THEME_DEFAULTS, ...THEMES.dark };
+THEMES.light = { ...THEME_DEFAULTS, ...THEMES.light, blob: 0.28,
+  tileBg: (a) => `linear-gradient(150deg, ${a}33, rgba(255,255,255,0.8) 65%)`, tileBorder: (a) => `1px solid ${a}40` };
+// Sage — warm paper, botanical greens and clay, soft serif. Flat, calm, journal-like.
+THEMES.sage = { ...THEME_DEFAULTS, light: true, font: "'Fraunces',Georgia", grad: GRAD("#6F9A6B", "#D4A24C"), radius: 20, blur: "none", blob: 0.18,
+  bg0: "#F6F1E7", bg1: "#FBF8F1", bg2: "#EFE8D8",
+  glass: "rgba(255,253,247,0.92)", glassBright: "#FFFFFF", stroke: "rgba(110,98,60,0.18)", cardShadow: "0 6px 18px rgba(120,100,50,0.10)",
+  ink: "#2E3A2B", soft: "#667060", faint: "#98A08E",
+  appBg: `radial-gradient(900px 480px at 10% -8%, #E6EBCF, transparent 62%), radial-gradient(700px 480px at 100% 0%, #F7DFC9, transparent 58%), linear-gradient(180deg, #FAF6EC, #F3ECDC)`,
+  sheetBg: `linear-gradient(180deg, #FFFDF8, #F6F1E7)`, setupBg: `radial-gradient(1200px 600px at 50% -10%, #E6EBCF, #F6F1E7)`,
+  navBg: "rgba(250,246,236,0.94)", scoreTrack: "rgba(110,98,60,0.13)",
+  coral: "#D9826A", violet: "#8E86B8", cyan: "#5BA9A3", lime: "#6F9A6B", amber: "#D9A33F", rose: "#CB7A92", sky: "#6C9BB4",
+  food: "#D9826A", exercise: "#D9A33F", steps: "#6C9BB4", weight: "#8E86B8", mood: "#CB7A92", sleep: "#7B76B5", water: "#5BA9A3",
+  tileBg: (a) => `linear-gradient(160deg, ${a}2E, ${a}12)`, tileBorder: (a) => `1px solid ${a}35` };
+// Pop — bold & playful: butter background, thick ink outlines, hard offset shadows, bright colour.
+const INK = "#1B1730";
+THEMES.pop = { ...THEME_DEFAULTS, light: true, font: "'Space Grotesk'", grad: GRAD("#FF5C8A", "#7C5CFF"), radius: 18, blur: "none", blob: 0,
+  bg0: "#FFF1B8", bg1: "#FFF8DA", bg2: "#FFE88F",
+  glass: "#FFFFFF", glassBright: "#FFFFFF", stroke: INK, cardBorder: `2.5px solid ${INK}`, cardShadow: `4px 4px 0 ${INK}`,
+  ink: INK, soft: "#4A4566", faint: "#7C7799",
+  appBg: `radial-gradient(rgba(27,23,48,0.12) 1.4px, transparent 1.7px) 0 0 / 18px 18px, #FFF1B8`,
+  sheetBg: "#FFF8DA", setupBg: `radial-gradient(rgba(27,23,48,0.12) 1.4px, transparent 1.7px) 0 0 / 18px 18px, #FFF1B8`,
+  navBg: "#FFFFFF", scoreTrack: "rgba(27,23,48,0.12)",
+  coral: "#FF5C8A", violet: "#7C5CFF", cyan: "#0E9FB0", lime: "#1FA866", amber: "#FFB020", rose: "#FF8FB1", sky: "#4D9DFF",
+  food: "#FF5C8A", exercise: "#FFB020", steps: "#4D9DFF", weight: "#7C5CFF", mood: "#FF8FB1", sleep: "#7C5CFF", water: "#19C6D6",
+  tileBg: (a) => tint(a, 0.62), tileBorder: () => `2.5px solid ${INK}` };
+const THEME_LIST = [["dark", "Twilight"], ["light", "Pastel"], ["sage", "Sage"], ["pop", "Pop"]];
 const C = { ...THEMES.dark };
 const applyTheme = (name) => Object.assign(C, THEMES[name] || THEMES.dark);
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
@@ -42,7 +73,8 @@ const CFG_KEYS = ["calorieGoal", "tdee", "deficit", "targetWeight", "targetDate"
 const DAY_KEYS = ["exercise", "exerciseBurn", "exerciseMode", "steps", "weight", "mood", "sleepHours", "water"];
 const PLAN_KEYS = ["calorieGoal", "tdee", "deficit"];
 const pick = (o, ks) => Object.fromEntries(ks.filter(k => o && o[k] !== undefined).map(k => [k, o[k]]));
-const grad = `linear-gradient(135deg, ${C.coral}, ${C.violet})`;
+const grad = "var(--grad)"; // set per theme via CSS variable
+const themeVars = () => `:root{--f:${C.font};--grad:${C.grad};}`;
 
 const tdeeOf = ({ sex, age, heightCm, weightKg, activity }) => {
   const bmr = sex === "female" ? 10 * weightKg + 6.25 * heightCm - 5 * age - 161 : 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
@@ -77,7 +109,9 @@ const bmiOf = (w, h) => w / Math.pow(h / 100, 2);
 const healthyRange = (h) => { const m = h / 100; return { min: +(18.5 * m * m).toFixed(1), max: +(24.9 * m * m).toFixed(1) }; };
 const macroTargets = (tw, g) => ({ protein: Math.round((tw || 55) * 1.6), fat: Math.round(g * 0.30 / 9), fibre: 28, sugar: Math.round(g * 0.10 / 4), netCarbs: Math.round(g * 0.45 / 4) });
 
-const STATUS = { good: { color: "#8BE0A8", label: "Healthy" }, border: { color: "#FFC56E", label: "Borderline" }, high: { color: "#FF7A8A", label: "High" }, low: { color: "#6FA8FF", label: "Low" } };
+// Health-status colours: slightly deeper on light themes so the text stays readable.
+const mkStatus = (label, dark, light) => ({ get color() { return C.light ? light : dark; }, label });
+const STATUS = { good: mkStatus("Healthy", "#8BE0A8", "#2E9E62"), border: mkStatus("Borderline", "#FFC56E", "#C98A12"), high: mkStatus("High", "#FF7A8A", "#E0456A"), low: mkStatus("Low", "#6FA8FF", "#2F78E0") };
 const fmtNum = (n) => Math.abs(n) >= 100 ? Math.round(n) : +(Math.round(n * 10) / 10);
 const evalStatus = (value, band, unit = "") => {
   if (value == null || isNaN(value) || !band) return null;
@@ -122,13 +156,13 @@ async function askAI(system, content, max = 1000) {
 }
 
 const _sw = {}, _sh = {}, _cd = {};
-Object.defineProperty(_sw, "v", { get: () => ({ position: "fixed", inset: 0, background: C.bg0 === "#0E1020" ? "rgba(8,9,18,0.6)" : "rgba(28,30,46,0.35)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }) });
+Object.defineProperty(_sw, "v", { get: () => ({ position: "fixed", inset: 0, background: !C.light ? "rgba(8,9,18,0.6)" : "rgba(28,30,46,0.35)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }) });
 Object.defineProperty(_sh, "v", { get: () => ({ background: C.sheetBg, width: "100%", maxWidth: 470, height: "92vh", display: "flex", flexDirection: "column", borderTop: `1px solid ${C.stroke}`, borderRadius: "28px 28px 0 0", boxShadow: "0 -20px 60px rgba(0,0,0,0.35)" }) });
-Object.defineProperty(_cd, "v", { get: () => ({ background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 22, backdropFilter: "blur(20px)", boxShadow: C.cardShadow }) });
+Object.defineProperty(_cd, "v", { get: () => ({ background: C.glass, border: C.cardBorder || `1px solid ${C.stroke}`, borderRadius: C.radius, backdropFilter: C.blur, boxShadow: C.cardShadow }) });
 const mkProxy = (src) => new Proxy({}, { get: (_, k) => src.v[k], ownKeys: () => Reflect.ownKeys(src.v), getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }) });
 const sheetWrap = mkProxy(_sw);
 const sheet = mkProxy(_sh);
-const FONT = "'Sora',system-ui,sans-serif";
+const FONT = "var(--f), system-ui, sans-serif";
 const card = mkProxy(_cd);
 function Head({ title, onClose }) {
   return <div style={{ padding: "20px 22px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.stroke}` }}>
@@ -536,11 +570,17 @@ function Profile({ data, history, streak, account, theme, onToggleTheme, onLogin
       <div style={{ ...card, padding: "4px 16px", marginBottom: 16 }}>{row("Start weight", start ? start + " kg" : "—")}{row("Goal", data.targetWeight + " kg")}{row("Lost so far", lost > 0 ? lost + " kg 🎉" : "—")}{row("Target date", data.targetDate ? new Date(data.targetDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—")}{row("Daily target", data.calorieGoal + " kcal")}{range && row("Healthy range", `${range.min}–${range.max} kg`)}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <button onClick={onEditGoals} style={{ border: "none", background: grad, color: "#fff", borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Edit goals & date</button>
-        <button onClick={onToggleTheme} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.violet, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>{theme === "dark" ? "🌙 Appearance · Dark" : "☀️ Appearance · Light"}</button>
+        <div style={{ ...card, padding: 14 }}>
+          <div style={{ fontSize: 11, color: C.faint, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Appearance</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{THEME_LIST.map(([k, name]) => { const T = THEMES[k], on = theme === k; return <div key={k} onClick={() => onToggleTheme(k)} style={{ cursor: "pointer", borderRadius: 16, padding: 10, background: T.appBg, border: on ? `2.5px solid ${C.violet}` : `1px solid ${C.stroke}`, boxShadow: on ? `0 0 0 3px ${C.violet}33` : "none" }}>
+            <div style={{ height: 34, borderRadius: Math.min(T.radius, 12), background: T.glass, border: T.cardBorder || `1px solid ${T.stroke}`, boxShadow: T.cardShadow === "none" ? "none" : T.cardShadow.replace("4px 4px", "2px 2px"), display: "flex", alignItems: "center", padding: "0 10px", gap: 6 }}><div style={{ height: 8, width: "55%", borderRadius: 99, background: T.grad }} /><div style={{ height: 8, width: 8, borderRadius: 99, background: T.lime }} /><div style={{ height: 8, width: 8, borderRadius: 99, background: T.amber }} /></div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, marginTop: 8, fontFamily: `${T.font}, system-ui, sans-serif` }}>{name}{on ? " ✓" : ""}</div>
+          </div>; })}</div>
+        </div>
         <button onClick={onToggleSound} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: data.soundOn ? C.cyan : C.faint, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>{data.soundOn ? "🔊 Sound on" : "🔇 Sound off"}</button>
         {account && <button onClick={onLogout} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.soft, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Sign out</button>}
         <button onClick={() => exportAll()} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.cyan, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>⬇️ Export backup</button>
-        <label style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.cyan, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT, textAlign: "center" }}>⬆️ Import backup<input type="file" accept="application/json,.json" style={{ display: "none" }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const n = await importAll(f); alert(`Restored ${n} items. Reloading…`); location.reload(); } catch (err) { alert("Import failed: " + err.message); } }} /></label>
+        <label style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.cyan, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT, fontSize: "13.3333px", textAlign: "center" }}>⬆️ Import backup<input type="file" accept="application/json,.json" style={{ display: "none" }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const n = await importAll(f); alert(`Restored ${n} items. Reloading…`); location.reload(); } catch (err) { alert("Import failed: " + err.message); } }} /></label>
         <button onClick={onReset} style={{ border: `1px solid ${C.coral}44`, background: C.glass, color: C.coral, borderRadius: 14, padding: 14, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>Reset all data</button>
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 20, flexWrap: "wrap" }}>
@@ -643,8 +683,8 @@ function Docs({ which, onClose }) {
 }
 
 function Tile({ label, value, sub, accent, icon, open, expanded, children }) {
-  return <div onClick={open} style={{ ...card, padding: 16, cursor: "pointer", position: "relative", overflow: "hidden", ...(C.light ? { background: `linear-gradient(150deg, ${accent}33, rgba(255,255,255,0.8) 65%)`, border: `1px solid ${accent}40` } : {}) }}>
-    <div style={{ position: "absolute", top: -30, right: -30, width: 80, height: 80, borderRadius: "50%", background: accent, opacity: C.light ? 0.28 : 0.12, filter: "blur(8px)" }} />
+  return <div onClick={open} style={{ ...card, padding: 16, cursor: "pointer", position: "relative", overflow: "hidden", ...(C.tileBg ? { background: C.tileBg(accent), border: C.tileBorder(accent) } : {}) }}>
+    <div style={{ position: "absolute", top: -30, right: -30, width: 80, height: 80, borderRadius: "50%", background: accent, opacity: C.blob, filter: "blur(8px)" }} />
     <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
     <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
     <div style={{ fontFamily: FONT, fontSize: 23, fontWeight: 800, color: C.ink, marginTop: 2 }}>{value}{sub && <span style={{ fontSize: 12, color: C.faint, fontWeight: 500, marginLeft: 4 }}>{sub}</span>}</div>
@@ -664,6 +704,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const [viewDate, setViewDate] = useState(todayKey()), [slide, setSlide] = useState(0);
   const liveCfg = useRef({}), skipRef = useRef(null), touch = useRef(null);
   const isToday = viewDate === todayKey();
+  useEffect(() => { try { document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEMES[theme]?.bg0 || "#0E1020"); document.body.style.background = THEMES[theme]?.bg0 || ""; } catch {} }, [theme]);
   applyTheme(theme);
 
   useEffect(() => { (async () => {
@@ -693,7 +734,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const saveBody = async (en) => { const n = { ...bodyLog, [en.date]: { vals: en.vals, analysis: en.analysis } }; setBodyLog(n); await store.set("loop_body", n); };
   const toggleDeduct = async () => { const v = !data.deductBurned; liveCfg.current = { ...liveCfg.current, deductBurned: v }; setData(d => ({ ...d, deductBurned: v })); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, deductBurned: v }); };
   const toggleSound = async () => { const v = !data.soundOn; sound.on = v; liveCfg.current = { ...liveCfg.current, soundOn: v }; setData(d => ({ ...d, soundOn: v })); if (v) sound.tap(); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, soundOn: v }); };
-  const toggleTheme = async () => { const v = theme === "dark" ? "light" : "dark"; setTheme(v); applyTheme(v); sound.tap(); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, theme: v }); };
+  const toggleTheme = async (pick) => { const order = THEME_LIST.map(t => t[0]); const v = typeof pick === "string" ? pick : order[(order.indexOf(theme) + 1) % order.length]; setTheme(v); applyTheme(v); sound.tap(); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, theme: v }); };
   const resetAll = async () => { if (!window.confirm("Reset all data? This cannot be undone.")) return; try { const ks = await window.storage.list(); (ks?.keys || []).filter(k => k.startsWith("loop_")).forEach(k => window.storage.delete(k)); } catch {} setModal(null); setSetupDone(false); setFoods([]); setFavourites([]); setPhotos([]); setHistory({}); setBodyLog({}); if (!authAccount) setAccount(null); };
   const doLogin = async (acc) => { setAccount(acc); await store.set("loop_account", acc); setModal("profile"); };
   const doLogout = async () => { if (onLogout) return onLogout(); setAccount(null); try { window.storage.delete("loop_account"); } catch {} };
@@ -725,7 +766,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const wasHigh = useRef(false);
   useEffect(() => { const high = score >= 80; if (!isToday) { wasHigh.current = high; return; } if (high && !wasHigh.current) { sound.win(); setFxIndex(Math.floor(Math.random() * EFFECTS.length)); setCelebrate(c => c + 1); } wasHigh.current = high; }, [score >= 80, viewDate]);
 
-  const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');`;
+  const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Fraunces:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');${themeVars()}`;
   if (!loaded) return <div style={{ minHeight: "100vh", background: C.bg0, display: "flex", alignItems: "center", justifyContent: "center", color: C.faint, fontFamily: FONT }}><style>{FONTCSS}</style>Loading…</div>;
   if (!setupDone) return <><style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none;}body{font-family:${FONT};background:${C.bg0};}`}</style><Setup initial={data.profile} onDone={async (cfg) => { setData(d => ({ ...d, ...cfg })); await store.set("loop_config", { calorieGoal: cfg.calorieGoal, tdee: cfg.tdee, deficit: cfg.deficit, targetWeight: cfg.targetWeight, targetDate: cfg.targetDate, weight: cfg.weight, profile: cfg.profile, deductBurned: data.deductBurned, soundOn: data.soundOn, theme }); setSetupDone(true); }} /></>;
 
@@ -736,7 +777,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const nav = [["food", "🍎", "Food"], ["journal", "📸", "Journal"], ["body", "🧍", "Body"], ["history", "📈", "Progress"], ["ai", "💬", "Coach"]];
 
   return <div>
-    <style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:${FONT};color:${C.ink};background:${C.bg0};}input::placeholder{color:${C.faint};}::-webkit-scrollbar{width:0;}@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}.fu{animation:fadeUp .4s ease forwards;}@keyframes slL{from{opacity:0;transform:translateX(-20px);}to{opacity:1;transform:none;}}@keyframes slR{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:none;}}.sl{animation:slL .28s ease forwards;}.sr{animation:slR .28s ease forwards;}input:focus{border-color:${C.violet} !important;}`}</style>
+    <style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none;}body{font-family:${FONT};color:${C.ink};background:${C.bg0};}input::placeholder{color:${C.faint};}::-webkit-scrollbar{width:0;}@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}.fu{animation:fadeUp .4s ease forwards;}@keyframes slL{from{opacity:0;transform:translateX(-20px);}to{opacity:1;transform:none;}}@keyframes slR{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:none;}}.sl{animation:slL .28s ease forwards;}.sr{animation:slR .28s ease forwards;}input:focus{border-color:${C.violet} !important;}`}</style>
 
     <div style={{ minHeight: "100vh", background: C.appBg, transition: "background .4s ease", overflowX: "clip", maxWidth: "100vw" }}>
       <div key={viewDate} className={slide < 0 ? "sl" : slide > 0 ? "sr" : "fu"} onTouchStart={onTS} onTouchEnd={onTE} style={{ touchAction: "pan-y pinch-zoom", maxWidth: 470, margin: "0 auto", padding: "0 18px 110px" }}>
@@ -764,7 +805,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
         </div>
 
         <div onClick={() => open("food")} style={{ ...card, padding: 20, marginTop: 14, cursor: "pointer", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: -40, right: -20, width: 120, height: 120, borderRadius: "50%", background: grad, opacity: 0.16, filter: "blur(20px)" }} />
+          <div style={{ position: "absolute", top: -40, right: -20, width: 120, height: 120, borderRadius: "50%", background: grad, opacity: C.blob ? 0.16 : 0, filter: "blur(20px)" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
             <div><div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>Eaten</div><div style={{ fontFamily: FONT, fontSize: 44, fontWeight: 800, lineHeight: 1 }}>{caloriesEaten}</div></div>
             <div style={{ textAlign: "right" }}><div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>{remaining >= 0 ? "Left" : "Over"}</div><div style={{ fontFamily: FONT, fontSize: 44, fontWeight: 800, lineHeight: 1, color: remaining >= 0 ? C.lime : C.coral }}>{Math.abs(remaining)}</div></div>
@@ -801,7 +842,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
 
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 26, fontSize: 12, color: C.soft }}>
           <span onClick={() => { sound.tap(); setSetupDone(false); }} style={{ cursor: "pointer" }}>⚙️ Goals</span>
-          <span onClick={toggleTheme} style={{ cursor: "pointer" }}>{theme === "dark" ? "🌙 Dark" : "☀️ Light"}</span>
+          <span onClick={() => toggleTheme()} style={{ cursor: "pointer" }}>🎨 {THEME_LIST.find(t => t[0] === theme)?.[1] || "Theme"}</span>
           <span onClick={toggleSound} style={{ cursor: "pointer", color: data.soundOn ? C.cyan : C.faint }}>{data.soundOn ? "🔊 Sound" : "🔇 Muted"}</span>
         </div>
       </div>
