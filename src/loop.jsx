@@ -61,7 +61,18 @@ THEMES.pop = { ...THEME_DEFAULTS, light: true, font: "'Space Grotesk'", grad: GR
   coral: "#FF5C8A", violet: "#7C5CFF", cyan: "#0E9FB0", lime: "#1FA866", amber: "#FFB020", rose: "#FF8FB1", sky: "#4D9DFF",
   food: "#FF5C8A", exercise: "#FFB020", steps: "#4D9DFF", weight: "#7C5CFF", mood: "#FF8FB1", sleep: "#7C5CFF", water: "#19C6D6",
   tileBg: (a) => tint(a, 0.62), tileBorder: () => `2.5px solid ${INK}` };
-const THEME_LIST = [["dark", "Twilight"], ["light", "Pastel"], ["sage", "Sage"], ["pop", "Pop"]];
+// Ember — warm charcoal with amber/copper glow. A cosy dark mode, warmer than Twilight.
+THEMES.ember = { ...THEME_DEFAULTS, light: false, font: "'Manrope'", grad: GRAD("#FF9A3D", "#FF4D6D"), radius: 24, blur: "none", blob: 0.16,
+  bg0: "#100C0B", bg1: "#1A1412", bg2: "#241A16",
+  glass: "rgba(255,240,225,0.055)", glassBright: "rgba(255,240,225,0.10)", stroke: "rgba(255,220,195,0.13)", cardShadow: "0 10px 28px rgba(0,0,0,0.38)",
+  ink: "#F7EEE5", soft: "#C2B1A3", faint: "#8A7A6D",
+  appBg: `radial-gradient(900px 500px at 12% -10%, #3B2012, transparent 60%), radial-gradient(800px 500px at 100% 0%, #301522, transparent 58%), linear-gradient(180deg, #1B1512, #100C0B)`,
+  sheetBg: `linear-gradient(180deg, #1D1613, #100C0B)`, setupBg: `radial-gradient(1200px 600px at 50% -10%, #3B2012, #100C0B)`,
+  navBg: "rgba(16,12,11,0.88)", scoreTrack: "rgba(255,230,205,0.09)",
+  coral: "#FF7A59", violet: "#B79BFF", cyan: "#5CCFC0", lime: "#A6D96A", amber: "#FFB84D", rose: "#FF8FA3", sky: "#6FA8E8",
+  food: "#FF7A59", exercise: "#FFB020", steps: "#5FA8F0", weight: "#B79BFF", mood: "#F26FA8", sleep: "#8A7BF0", water: "#3CC4C4",
+  tileBg: (a) => `linear-gradient(150deg, ${a}30, rgba(255,240,225,0.03) 70%)`, tileBorder: (a) => `1px solid ${a}38` };
+const THEME_LIST = [["dark", "Twilight"], ["light", "Pastel"], ["sage", "Sage"], ["pop", "Pop"], ["ember", "Ember"]];
 const C = { ...THEMES.dark };
 const applyTheme = (name) => Object.assign(C, THEMES[name] || THEMES.dark);
 const MOODS = ["😔", "😕", "😐", "🙂", "😄"];
@@ -766,7 +777,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const wasHigh = useRef(false);
   useEffect(() => { const high = score >= 80; if (!isToday) { wasHigh.current = high; return; } if (high && !wasHigh.current) { sound.win(); setFxIndex(Math.floor(Math.random() * EFFECTS.length)); setCelebrate(c => c + 1); } wasHigh.current = high; }, [score >= 80, viewDate]);
 
-  const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Fraunces:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');${themeVars()}`;
+  const FONTCSS = `@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Fraunces:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');${themeVars()}`;
   if (!loaded) return <div style={{ minHeight: "100vh", background: C.bg0, display: "flex", alignItems: "center", justifyContent: "center", color: C.faint, fontFamily: FONT }}><style>{FONTCSS}</style>Loading…</div>;
   if (!setupDone) return <><style>{`${FONTCSS}*{box-sizing:border-box;margin:0;padding:0;}html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none;}body{font-family:${FONT};background:${C.bg0};}`}</style><Setup initial={data.profile} onDone={async (cfg) => { setData(d => ({ ...d, ...cfg })); await store.set("loop_config", { calorieGoal: cfg.calorieGoal, tdee: cfg.tdee, deficit: cfg.deficit, targetWeight: cfg.targetWeight, targetDate: cfg.targetDate, weight: cfg.weight, profile: cfg.profile, deductBurned: data.deductBurned, soundOn: data.soundOn, theme }); setSetupDone(true); }} /></>;
 
