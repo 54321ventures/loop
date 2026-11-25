@@ -33,6 +33,7 @@ const THEMES = {
 };
 const hex2rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const tint = (h, t) => { const [r, g, b] = hex2rgb(h); const m = (v) => Math.round(v + (255 - v) * t); return `rgb(${m(r)},${m(g)},${m(b)})`; };
+const shade = (h, t) => { const [r, g, b] = hex2rgb(h); const m = (v) => Math.round(v * (1 - t)); return `rgb(${m(r)},${m(g)},${m(b)})`; };
 const GRAD = (a, b) => `linear-gradient(135deg, ${a}, ${b})`;
 const THEME_DEFAULTS = { font: "'Sora'", grad: GRAD("#FF7A8A", "#8B7CFF"), radius: 22, blur: "blur(20px)", cardBorder: null, cardShadow: "none", blob: 0.12, light: false, tileBg: null, tileBorder: null, tileInk: null, tileExtra: null, ring: null, ringGlow: "drop-shadow(0 0 6px rgba(139,124,255,0.5))" };
 // Midnight (key "dark") — neon night: near-black navy, faint grid, thin glowing cyan edges, solid panels, techy sans. Nothing glassy.
@@ -71,17 +72,16 @@ THEMES.pop = { ...THEME_DEFAULTS, light: true, font: "'Space Grotesk'", grad: GR
   coral: "#FF5C8A", violet: "#7C5CFF", cyan: "#0E9FB0", lime: "#1FA866", amber: "#FFB020", rose: "#FF8FB1", sky: "#4D9DFF",
   food: "#FF5C8A", exercise: "#FFB020", steps: "#4D9DFF", weight: "#7C5CFF", mood: "#FF8FB1", sleep: "#7C5CFF", water: "#19C6D6",
   tileBg: (a) => tint(a, 0.62), tileBorder: () => `2.5px solid ${INK}` };
-// Ember — warm charcoal with amber/copper glow. A cosy dark mode, warmer than Twilight.
-THEMES.ember = { ...THEME_DEFAULTS, light: false, font: "'Manrope'", grad: GRAD("#FF9A3D", "#FF4D6D"), radius: 24, blur: "none", blob: 0.16,
-  bg0: "#100C0B", bg1: "#1A1412", bg2: "#241A16",
-  glass: "rgba(255,240,225,0.055)", glassBright: "rgba(255,240,225,0.10)", stroke: "rgba(255,220,195,0.13)", cardShadow: "0 10px 28px rgba(0,0,0,0.38)",
-  ink: "#F7EEE5", soft: "#C2B1A3", faint: "#8A7A6D",
-  appBg: `radial-gradient(900px 500px at 12% -10%, #3B2012, transparent 60%), radial-gradient(800px 500px at 100% 0%, #301522, transparent 58%), linear-gradient(180deg, #1B1512, #100C0B)`,
-  sheetBg: `linear-gradient(180deg, #1D1613, #100C0B)`, setupBg: `radial-gradient(1200px 600px at 50% -10%, #3B2012, #100C0B)`,
-  navBg: "rgba(16,12,11,0.88)", scoreTrack: "rgba(255,230,205,0.09)",
-  coral: "#FF7A59", violet: "#B79BFF", cyan: "#5CCFC0", lime: "#A6D96A", amber: "#FFB84D", rose: "#FF8FA3", sky: "#6FA8E8",
-  food: "#FF7A59", exercise: "#FFB020", steps: "#5FA8F0", weight: "#B79BFF", mood: "#F26FA8", sleep: "#8A7BF0", water: "#3CC4C4",
-  tileBg: (a) => `linear-gradient(150deg, ${a}30, rgba(255,240,225,0.03) 70%)`, tileBorder: (a) => `1px solid ${a}38` };
+// Ember — espresso & copper, "colour-block": solid flat panels, no glass/gradients/glow; each habit tile is a solid deep warm block with cream text.
+THEMES.ember = { ...THEME_DEFAULTS, light: false, font: "'Manrope'", grad: GRAD("#E8772E", "#E8772E"), radius: 28, blur: "none", blob: 0, ring: ["#F08A3C", "#F08A3C", "#F08A3C"], ringGlow: "none",
+  bg0: "#14100E", bg1: "#1D1713", bg2: "#271E19",
+  glass: "#211A16", glassBright: "#2B221D", stroke: "rgba(255,225,200,0.10)", cardBorder: "1px solid transparent", cardShadow: "none",
+  ink: "#FBEFE3", soft: "#C9B8A9", faint: "#8F7F72",
+  appBg: "#14100E", sheetBg: "#1A1411", setupBg: "#14100E",
+  navBg: "#14100E", scoreTrack: "rgba(255,230,205,0.10)",
+  coral: "#E8664A", violet: "#B58AC9", cyan: "#58B3A8", lime: "#B5C95A", amber: "#F2B04A", rose: "#E486A0", sky: "#7FA9D6",
+  food: "#E8664A", exercise: "#E9A23B", steps: "#D9774F", weight: "#A66A8F", mood: "#D9708A", sleep: "#8C6BB0", water: "#4FA39B",
+  tileBg: (a) => shade(a, 0.5), tileBorder: () => "1px solid transparent", tileInk: "#FBEFE3" };
 // Mono — minimalist charcoal on off-white. Hairlines, no colour, no shadows; brick red only for warnings.
 THEMES.mono = { ...THEME_DEFAULTS, light: true, font: "'Inter'", grad: GRAD("#2A2A2A", "#3D3D3D"), radius: 14, blur: "none", blob: 0, ring: ["#222222", "#2E2E2E", "#555555"], ringGlow: "none",
   bg0: "#F2F0EB", bg1: "#F7F5F0", bg2: "#E9E6DF",
@@ -716,8 +716,8 @@ function Tile({ label, value, sub, accent, icon, open, expanded, children }) {
   return <div onClick={open} style={{ ...card, padding: 16, cursor: "pointer", position: "relative", overflow: "hidden", ...(C.tileBg ? { background: C.tileBg(accent), border: C.tileBorder(accent) } : {}), ...(C.tileExtra ? C.tileExtra(accent) : {}) }}>
     <div style={{ position: "absolute", top: -30, right: -30, width: 80, height: 80, borderRadius: "50%", background: accent, opacity: C.blob, filter: "blur(8px)" }} />
     <div style={{ fontSize: 18, marginBottom: 6 }}>{icon}</div>
-    <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
-    <div style={{ fontFamily: FONT, fontSize: 23, fontWeight: 800, color: C.ink, marginTop: 2 }}>{value}{sub && <span style={{ fontSize: 12, color: C.faint, fontWeight: 500, marginLeft: 4 }}>{sub}</span>}</div>
+    <div style={{ fontSize: 11, color: C.tileInk || C.faint, opacity: C.tileInk ? 0.72 : 1, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
+    <div style={{ fontFamily: FONT, fontSize: 23, fontWeight: 800, color: C.tileInk || C.ink, marginTop: 2 }}>{value}{sub && <span style={{ fontSize: 12, color: C.tileInk || C.faint, opacity: C.tileInk ? 0.72 : 1, fontWeight: 500, marginLeft: 4 }}>{sub}</span>}</div>
     {expanded && <div onClick={e => e.stopPropagation()} style={{ marginTop: 14 }}>{children}</div>}
   </div>;
 }
