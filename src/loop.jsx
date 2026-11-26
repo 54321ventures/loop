@@ -391,7 +391,7 @@ function Setup({ initial, onDone }) {
 function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd, onRemove, onToggleFav, onClose }) {
   const [desc, setDesc] = useState(""), [loading, setLoading] = useState(false), [status, setStatus] = useState(""), [manualCal, setManualCal] = useState(""), [preview, setPreview] = useState(null), [meal, setMeal] = useState("Breakfast"), [q, setQ] = useState(""), [added, setAdded] = useState("");
   const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-  const matches = terms.length ? pastFoods.filter(f => terms.every(t => f.name.toLowerCase().includes(t))).slice(0, 8) : pastFoods.slice(0, 5);
+  const matches = terms.length ? pastFoods.filter(f => terms.every(t => f.name.toLowerCase().includes(t))).slice(0, 8) : pastFoods.slice(0, 10);
   const addPast = (f) => { onAdd({ id: Date.now(), name: f.name, calories: f.calories, protein: f.protein || 0, fat: f.fat || 0, fibre: f.fibre || 0, sugar: f.sugar || 0, netCarbs: f.netCarbs || 0, meal }); setAdded(`Added ${f.name} to ${meal} ✓`); setQ(""); setTimeout(() => setAdded(""), 2500); };
   const sum = (k) => entries.reduce((s, e) => s + (e[k] || 0), 0);
   const total = sum("calories"), remaining = goal - total;
@@ -428,11 +428,8 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 Search foods you've logged…" style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, fontFamily: FONT }} />
         {added && <div style={{ fontSize: 12.5, color: C.lime, marginTop: 8, fontWeight: 600 }}>{added}</div>}
         {pastFoods.length > 0 && <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>{terms.length ? "Matches" : "Recent"}</div>
-          {matches.map(f => <div key={f.name} onClick={() => addPast(f)} style={{ ...card, display: "flex", alignItems: "center", padding: "10px 14px", marginBottom: 8, cursor: "pointer" }}>
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, color: C.ink, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div><div style={{ fontSize: 11, color: C.faint, marginTop: 2 }}>{f.calories} kcal · last {new Date(f.date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}{f.count > 1 ? ` · logged ${f.count}×` : ""}</div></div>
-            <div style={{ background: grad, color: "#fff", borderRadius: 99, padding: "6px 14px", fontSize: 12, fontWeight: 700, marginLeft: 10 }}>＋ {meal}</div>
-          </div>)}
+          <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>{terms.length ? "Matches" : "Recent"}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{matches.map(f => <button key={f.name} onClick={() => addPast(f)} title={`Last logged ${f.date}${f.count > 1 ? ` · ${f.count}×` : ""}`} style={{ border: `1px solid ${C.stroke}`, background: C.glass, padding: "8px 13px", fontSize: 12.5, color: C.soft, cursor: "pointer", borderRadius: 99, fontFamily: FONT }}>{f.name} · {f.calories}</button>)}</div>
           {terms.length > 0 && matches.length === 0 && <div style={{ fontSize: 12.5, color: C.faint }}>No matches — describe it below to estimate.</div>}
         </div>}
         {pastFoods.length === 0 && terms.length > 0 && <div style={{ fontSize: 12.5, color: C.faint, marginTop: 8 }}>Nothing logged yet — foods you add will show up here.</div>}
