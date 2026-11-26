@@ -391,7 +391,7 @@ function Setup({ initial, onDone }) {
 function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd, onRemove, onToggleFav, onClose }) {
   const [desc, setDesc] = useState(""), [loading, setLoading] = useState(false), [status, setStatus] = useState(""), [manualCal, setManualCal] = useState(""), [preview, setPreview] = useState(null), [meal, setMeal] = useState("Breakfast"), [q, setQ] = useState(""), [added, setAdded] = useState("");
   const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-  const matches = terms.length ? pastFoods.filter(f => terms.every(t => f.name.toLowerCase().includes(t))).slice(0, 8) : pastFoods.slice(0, 10);
+  const matches = terms.length ? pastFoods.filter(f => terms.every(t => f.name.toLowerCase().includes(t))).slice(0, 8) : pastFoods.slice(0, 3);
   const addPast = (f) => { onAdd({ id: Date.now(), name: f.name, calories: f.calories, protein: f.protein || 0, fat: f.fat || 0, fibre: f.fibre || 0, sugar: f.sugar || 0, netCarbs: f.netCarbs || 0, meal }); setAdded(`Added ${f.name} to ${meal} ✓`); setQ(""); setTimeout(() => setAdded(""), 2500); };
   const sum = (k) => entries.reduce((s, e) => s + (e[k] || 0), 0);
   const total = sum("calories"), remaining = goal - total;
