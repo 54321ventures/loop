@@ -424,16 +424,6 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
         {macroChip("Sugar", macros.sugar, macroGoals.sugar, C.coral)}
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 14, background: C.glass, borderRadius: 99, padding: 4, border: `1px solid ${C.stroke}` }}>{MEALS.map(m => <button key={m} onClick={() => setMeal(m)} style={{ flex: 1, border: "none", background: meal === m ? grad : "transparent", color: meal === m ? "#fff" : C.soft, padding: "8px 0", fontSize: 12, fontWeight: 600, borderRadius: 99, cursor: "pointer", fontFamily: FONT }}>{m}</button>)}</div>
-      <div style={{ marginBottom: 16 }}>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 Search foods you've logged…" style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, fontFamily: FONT }} />
-        {added && <div style={{ fontSize: 12.5, color: C.lime, marginTop: 8, fontWeight: 600 }}>{added}</div>}
-        {pastFoods.length > 0 && <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>{terms.length ? "Matches" : "Recent"}</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{matches.map(f => <button key={f.name} onClick={() => addPast(f)} title={`Last logged ${f.date}${f.count > 1 ? ` · ${f.count}×` : ""}`} style={{ border: `1px solid ${C.stroke}`, background: C.glass, padding: "8px 13px", fontSize: 12.5, color: C.soft, cursor: "pointer", borderRadius: 99, fontFamily: FONT }}>{f.name} · {f.calories}</button>)}</div>
-          {terms.length > 0 && matches.length === 0 && <div style={{ fontSize: 12.5, color: C.faint }}>No matches — describe it below to estimate.</div>}
-        </div>}
-        {pastFoods.length === 0 && terms.length > 0 && <div style={{ fontSize: 12.5, color: C.faint, marginTop: 8 }}>Nothing logged yet — foods you add will show up here.</div>}
-      </div>
       <PhotoBtns onPhoto={onPhoto} idns="food" />
       {preview && <img src={preview} alt="" style={{ width: "100%", margin: "14px 0", maxHeight: 140, objectFit: "cover", borderRadius: 16, border: `1px solid ${C.stroke}` }} />}
       <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe a food…" onKeyDown={e => e.key === "Enter" && estimate()} style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, margin: "14px 0", fontFamily: FONT }} />
@@ -443,7 +433,17 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
         <button onClick={addManual} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.ink, padding: "0 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 14, fontFamily: FONT }}>Add</button>
       </div>
       {status && <div style={{ fontSize: 12.5, color: C.coral, marginTop: 10, lineHeight: 1.4 }}>{status}</div>}
-      {favourites.length > 0 && <div style={{ marginTop: 18 }}><div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Favourites</div><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{favourites.map((fa, i) => <button key={i} onClick={() => onAdd({ id: Date.now(), ...fa, meal })} style={{ border: `1px solid ${C.stroke}`, background: C.glass, padding: "8px 13px", fontSize: 12.5, color: C.soft, cursor: "pointer", borderRadius: 99, fontFamily: FONT }}>{fa.name} · {fa.calories}</button>)}</div></div>}
+      <div style={{ marginTop: 18 }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 Search foods you've logged…" style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, fontFamily: FONT }} />
+        {added && <div style={{ fontSize: 12.5, color: C.lime, marginTop: 8, fontWeight: 600 }}>{added}</div>}
+        {pastFoods.length > 0 && <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>{terms.length ? "Matches" : "Recent"}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{matches.map(f => <button key={f.name} onClick={() => addPast(f)} title={`Last logged ${f.date}${f.count > 1 ? ` · ${f.count}×` : ""}`} style={{ border: `1px solid ${C.stroke}`, background: C.glass, padding: "8px 13px", fontSize: 12.5, color: C.soft, cursor: "pointer", borderRadius: 99, fontFamily: FONT }}>{f.name} · {f.calories}</button>)}</div>
+          {terms.length > 0 && matches.length === 0 && <div style={{ fontSize: 12.5, color: C.faint }}>No matches — describe it below to estimate.</div>}
+        </div>}
+        {pastFoods.length === 0 && terms.length > 0 && <div style={{ fontSize: 12.5, color: C.faint, marginTop: 8 }}>Nothing logged yet — foods you add will show up here.</div>}
+      </div>
+      {favourites.length > 0 && <div style={{ marginTop: 16 }}><div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Favourites</div><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{favourites.map((fa, i) => <button key={i} onClick={() => onAdd({ id: Date.now(), ...fa, meal })} style={{ border: `1px solid ${C.stroke}`, background: C.glass, padding: "8px 13px", fontSize: 12.5, color: C.soft, cursor: "pointer", borderRadius: 99, fontFamily: FONT }}>{fa.name} · {fa.calories}</button>)}</div></div>}
       <div style={{ marginTop: 18 }}>
         {entries.length === 0 && <div style={{ textAlign: "center", color: C.faint, fontSize: 14, marginTop: 18 }}>Nothing logged yet</div>}
         {MEALS.map(mm => { const items = entries.filter(e => (e.meal || "Snack") === mm); if (!items.length) return null; const sub = items.reduce((s, e) => s + e.calories, 0);
