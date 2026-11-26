@@ -403,10 +403,10 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
     const o = JSON.parse(m[0]); const carbs = Math.round(+o.carbs || 0), fibre = Math.round(+o.fibre || 0);
     return { name: o.name, calories: Math.round(+o.calories || 0), protein: Math.round(+o.protein || 0), fat: Math.round(+o.fat || 0), fibre, sugar: Math.round(+o.sugar || 0), netCarbs: Math.max(0, carbs - fibre) };
   };
-  const blank = (name) => ({ name, calories: "", protein: 0, fat: 0, fibre: 0, sugar: 0, netCarbs: 0 });
+  const blank = (name) => ({ manual: true, name, calories: "", protein: 0, fat: 0, fibre: 0, sugar: 0, netCarbs: 0 });
   const estimate = async () => { if (!desc.trim()) { setStatus("Type a food first."); return; } setLoading(true); setStatus("Estimating…"); setDraft(null); try { const p = await parse(desc); setDraft({ ...p, name: p.name || desc.trim() }); setStatus(""); } catch (e) { setDraft(blank(desc.trim())); setStatus(e.message + " — enter the kcal below and press Add."); } finally { setLoading(false); } };
   const onPhoto = async (e) => { const file = e.target.files?.[0]; if (!file) return; setLoading(true); setStatus("Analysing photo…"); setDraft(null); try { const b64 = await fileToB64(file); setPreview(`data:image/jpeg;base64,${b64}`); const p = await parse([{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "text", text: "Estimate calories and macros of this meal." }]); setDraft({ ...p, name: p.name || "Photo meal" }); setStatus(""); } catch (err) { setDraft(blank("Photo meal")); setStatus(err.message + " — enter the kcal below and press Add."); } finally { setLoading(false); e.target.value = ""; } };
-  const addDraft = () => { if (!draft) return; const cal = Math.round(+draft.calories); if (!draft.name.trim() || !(cal >= 0) || draft.calories === "") { setStatus("Add a name and kcal first."); return; } onAdd({ id: Date.now(), ...draft, name: draft.name.trim(), calories: cal, meal }); setDraft(null); setPreview(null); setDesc(""); setStatus(""); };
+  const addDraft = () => { if (!draft) return; const cal = Math.round(+draft.calories); if (!draft.name.trim() || !(cal >= 0) || draft.calories === "") { setStatus("Add a name and kcal first."); return; } const { manual, ...clean } = draft; onAdd({ id: Date.now(), ...clean, name: draft.name.trim(), calories: cal, meal }); setDraft(null); setPreview(null); setDesc(""); setStatus(""); };
   const discardDraft = () => { setDraft(null); setPreview(null); setStatus(""); };
   const isFav = (n) => favourites.some(f => f.name === n);
   const macroChip = (label, v, g, col) => <div style={{ flex: "1 1 84px", minWidth: 78, ...card, padding: "10px 12px" }}><div style={{ fontSize: 11, color: C.faint, fontWeight: 600 }}>{label}</div><div style={{ fontSize: 16, color: C.ink, fontWeight: 700, margin: "2px 0 6px" }}>{v}<span style={{ fontSize: 11, color: C.faint, fontWeight: 500 }}> /{g}g</span></div><Bar value={v} max={g} color={col} /></div>;
@@ -430,21 +430,14 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
       {preview && <img src={preview} alt="" style={{ width: "100%", margin: "14px 0", maxHeight: 140, objectFit: "cover", borderRadius: 16, border: `1px solid ${C.stroke}` }} />}
       <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe a food…" onKeyDown={e => e.key === "Enter" && estimate()} style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, margin: "14px 0", fontFamily: FONT }} />
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={estimate} style={{ flex: 1, border: "none", background: grad, color: "#fff", padding: 13, fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 14, fontFamily: FONT, opacity: loading ? .6 : 1 }}>{loading ? "Working…" : "✨ Estimate"}</button>
+        <button onClick={estimate} style={{ flex: 1, border: "none", background: grad, color: "#fff", padding: 11, fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 14, fontFamily: FONT, opacity: loading ? .6 : 1 }}>{loading ? "Working…" : "✨ Estimate"}</button>
+        <button onClick={addDraft} disabled={!draft} style={{ border: `1px solid ${C.stroke}`, background: draft ? C.glassBright : C.glass, color: C.ink, padding: "0 20px", fontSize: 13, fontWeight: 700, cursor: draft ? "pointer" : "default", borderRadius: 14, fontFamily: FONT, opacity: draft ? 1 : 0.45 }}>＋ Add</button>
       </div>
-      {status && <div style={{ fontSize: 12.5, color: C.coral, marginTop: 10, lineHeight: 1.4 }}>{status}</div>}
-      {draft && <div style={{ ...card, padding: 14, marginTop: 12 }}>
-        <div style={{ fontSize: 11, color: C.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Estimate · not added yet</div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-          <input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Food name" style={{ flex: 1, minWidth: 0, background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 12, padding: "10px 12px", fontSize: 14.5, outline: "none", color: C.ink, fontFamily: FONT }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 12, padding: "0 12px" }}><input value={draft.calories} onChange={e => setDraft(d => ({ ...d, calories: e.target.value }))} type="number" inputMode="numeric" placeholder="0" style={{ width: 58, background: "transparent", border: "none", outline: "none", fontSize: 17, fontWeight: 800, textAlign: "right", color: C.ink, fontFamily: FONT }} /><span style={{ fontSize: 12, color: C.faint }}>kcal</span></div>
-        </div>
-        {(draft.protein || draft.fat || draft.netCarbs || draft.fibre || draft.sugar) ? <div style={{ fontSize: 12, color: C.soft, marginBottom: 12 }}>Protein {draft.protein}g · Fat {draft.fat}g · Net carbs {draft.netCarbs}g · Fibre {draft.fibre}g · Sugar {draft.sugar}g</div> : null}
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={addDraft} style={{ flex: 1, border: "none", background: grad, color: "#fff", padding: 13, fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 14, fontFamily: FONT }}>＋ Add to {meal}</button>
-          <button onClick={discardDraft} style={{ border: `1px solid ${C.stroke}`, background: C.glass, color: C.soft, padding: "0 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 14, fontFamily: FONT }}>Discard</button>
-        </div>
+      {draft && <div style={{ fontSize: 12, color: C.soft, marginTop: 9, lineHeight: 1.5 }}>
+        <b style={{ color: C.ink, fontWeight: 600 }}>{draft.name}</b> · {draft.manual ? <input value={draft.calories} onChange={e => setDraft(d => ({ ...d, calories: e.target.value }))} type="number" inputMode="numeric" placeholder="kcal" style={{ width: 54, background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 8, padding: "2px 6px", fontSize: 12, outline: "none", color: C.ink, fontFamily: FONT }} /> : <b style={{ color: C.ink, fontWeight: 600 }}>{draft.calories} kcal</b>}
+        {(draft.protein || draft.fat || draft.netCarbs || draft.fibre || draft.sugar) ? ` · P ${draft.protein} · Fat ${draft.fat} · NC ${draft.netCarbs} · Fib ${draft.fibre} · S ${draft.sugar}` : ""} <span onClick={discardDraft} style={{ cursor: "pointer", color: C.faint, marginLeft: 6 }}>✕</span>
       </div>}
+      {status && <div style={{ fontSize: 12.5, color: C.coral, marginTop: 10, lineHeight: 1.4 }}>{status}</div>}
       <div style={{ marginTop: 18 }}>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 Search foods you've logged…" style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 14, padding: "13px 14px", fontSize: 15, outline: "none", color: C.ink, fontFamily: FONT }} />
         {added && <div style={{ fontSize: 12.5, color: C.lime, marginTop: 8, fontWeight: 600 }}>{added}</div>}
