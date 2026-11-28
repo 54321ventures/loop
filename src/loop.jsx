@@ -102,6 +102,8 @@ const shiftDay = (key, n) => { const d = new Date(key + "T12:00:00"); d.setDate(
 const CFG_KEYS = ["calorieGoal", "tdee", "deficit", "targetWeight", "targetDate", "profile", "deductBurned", "soundOn", "exerciseGoal", "stepGoal", "sleepGoal", "waterGoal"];
 const DAY_KEYS = ["exercise", "exerciseBurn", "exerciseMode", "steps", "weight", "mood", "sleepHours", "water"];
 const PLAN_KEYS = ["calorieGoal", "tdee", "deficit"];
+const lastWeight = (h, fallback) => Object.keys(h || {}).sort().reverse().map(k => h[k]?.weight).find(w => w > 0) || fallback || 0;
+const shortDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 const pick = (o, ks) => Object.fromEntries(ks.filter(k => o && o[k] !== undefined).map(k => [k, o[k]]));
 const grad = "var(--grad)"; // set per theme via CSS variable
 const themeVars = () => `:root{--f:${C.font};--grad:${C.grad};}`;
@@ -743,7 +745,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
     const cfg = await store.get("loop_config", null), hist = await store.get("loop_history", {}), favs = await store.get("loop_fav", []), pics = await store.get("loop_photos", []), bl = await store.get("loop_body", {}), acc = authAccount || await store.get("loop_account", null), td = await store.get("loop_today:" + todayKey(), null);
     if (cfg) { setData(d => ({ ...d, ...cfg })); setSetupDone(true); sound.on = cfg.soundOn !== false; if (cfg.theme) { setTheme(cfg.theme); applyTheme(cfg.theme); } }
     setHistory(hist); setFavourites(favs); setPhotos(pics); setBodyLog(bl); setAccount(acc);
-    if (td) { setData(d => ({ ...d, ...cfg, ...td.data })); setFoods(td.foods || []); }
+    if (td) { setData(d => ({ ...d, ...cfg, ...td.data })); setFoods(td.foods || []); } else if (cfg) { setData(d => ({ ...d, weight: lastWeight(hist, cfg.weight) })); }
     liveCfg.current = { ...(cfg || {}), ...(td ? pick(td.data, CFG_KEYS) : {}) };
     setLoaded(true);
   })(); }, []);
@@ -756,7 +758,8 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const update = (k, v) => setData(d => ({ ...d, [k]: v }));
   const streak = (() => { const h = isToday ? { ...history, [todayKey()]: { calories: caloriesEaten } } : history; let n = 0; const d = new Date(); for (;;) { const k = d.toISOString().slice(0, 10); if (h[k] && h[k].calories > 0) { n++; d.setDate(d.getDate() - 1); } else break; } return n; })();
 
-  useEffect(() => { if (!isToday || !setupDone || !data.profile || !data.targetDate || !data.weight) return; const p = calcPlan(data.profile, data.weight, data.targetWeight, data.targetDate); if (p.goal !== data.calorieGoal) setData(d => ({ ...d, calorieGoal: p.goal, tdee: p.tdee, deficit: p.deficit })); }, [data.weight, data.targetWeight, data.targetDate, setupDone, viewDate]);
+  // Daily target follows the goal: recalculated from the latest weight, goal weight and days left (re-runs each new day).
+  useEffect(() => { if (!isToday || !setupDone || !data.profile || !data.targetDate || !(data.weight > 0)) return; const p = calcPlan(data.profile, data.weight, data.targetWeight, data.targetDate); setPlanInfo({ floored: p.floored, trueDate: p.trueDate, days: p.days }); if (p.goal !== data.calorieGoal) { if (data.calorieGoal > 0) setGoalNote({ from: data.calorieGoal, to: p.goal }); setData(d => ({ ...d, calorieGoal: p.goal, tdee: p.tdee, deficit: p.deficit })); } }, [data.weight, data.targetWeight, data.targetDate, setupDone, viewDate, todayKey()]);
   useEffect(() => { if (isToday && loaded) liveCfg.current = { ...liveCfg.current, ...pick(data, CFG_KEYS) }; }, [data, isToday, loaded]);
   useEffect(() => { if (!loaded || !setupDone) return; if (skipRef.current && skipRef.current.data === data && skipRef.current.foods === foods) return; (async () => { await store.set("loop_today:" + viewDate, { data, foods }); const nh = { ...history, [viewDate]: { calories: caloriesEaten, weight: data.weight || null, steps: data.steps, exercise: data.exercise, calorieGoal: data.calorieGoal } }; setHistory(nh); await store.set("loop_history", nh); })(); }, [data, foods, loaded, setupDone]);
 
@@ -770,7 +773,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const resetAll = async () => { if (!window.confirm("Reset all data? This cannot be undone.")) return; try { const ks = await window.storage.list(); (ks?.keys || []).filter(k => k.startsWith("loop_")).forEach(k => window.storage.delete(k)); } catch {} setModal(null); setSetupDone(false); setFoods([]); setFavourites([]); setPhotos([]); setHistory({}); setBodyLog({}); if (!authAccount) setAccount(null); };
   const doLogin = async (acc) => { setAccount(acc); await store.set("loop_account", acc); setModal("profile"); };
   const doLogout = async () => { if (onLogout) return onLogout(); setAccount(null); try { window.storage.delete("loop_account"); } catch {} };
-  const [pastFoods, setPastFoods] = useState([]);
+  const [pastFoods, setPastFoods] = useState([]), [planInfo, setPlanInfo] = useState(null), [goalNote, setGoalNote] = useState(null);
   useEffect(() => { if (modal !== "food") return; let live = true; (async () => {
     const map = new Map();
     for (const k of ((await window.storage.list())?.keys || []).filter(k => k.startsWith("loop_today:"))) {
@@ -784,6 +787,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
     if (key > todayKey() || key === viewDate) return;
     const rec = await store.get("loop_today:" + key, null), lc = liveCfg.current;
     const nd = key === todayKey() ? { ...DEFAULT_DATA, ...lc, ...(rec ? rec.data : {}), ...pick(lc, ["deductBurned", "soundOn"]) } : { ...DEFAULT_DATA, ...lc, ...pick(rec?.data, [...DAY_KEYS, ...PLAN_KEYS]) };
+    if (key === todayKey() && !rec) nd.weight = lastWeight(history, nd.weight);
     const nf = rec?.foods || [];
     skipRef.current = { data: nd, foods: nf };
     setSlide(key < viewDate ? -1 : 1); setViewDate(key); setData(nd); setFoods(nf); setActive(null); sound.tap();
@@ -847,6 +851,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
             <span style={{ fontSize: 12, color: C.faint }}>Budget {budget} kcal</span>
             <span onClick={e => { e.stopPropagation(); sound.tap(); toggleDeduct(); }} style={{ fontSize: 12, color: C.soft, cursor: "pointer", borderBottom: `1px solid ${data.deductBurned ? C.cyan : C.stroke}` }}>Burned {burned} · {data.deductBurned ? "counted" : "off"}</span>
           </div>
+          {isToday && planInfo && <div style={{ fontSize: 11, color: C.faint, marginTop: 8, lineHeight: 1.5 }}>Daily target {data.calorieGoal} kcal · adjusts automatically toward {data.targetWeight} kg by {shortDate(planInfo.floored ? planInfo.trueDate : data.targetDate)}{goalNote && goalNote.from !== goalNote.to ? ` · ${goalNote.to > goalNote.from ? "▲" : "▼"} ${Math.abs(goalNote.to - goalNote.from)} from ${goalNote.from}` : ""}{planInfo.floored ? " · safe minimum applied, so the date is realistic" : ""}</div>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
