@@ -468,11 +468,12 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
   </div></div>;
 }
 
-function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo }) {
+function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo, onSaveProfile }) {
   const FIELDS = [["bodyFat", "Body fat", "%"], ["subcutaneous", "Subcutaneous fat", "%"], ["skeletalMuscle", "Skeletal muscle", "%"], ["visceral", "Visceral fat", ""], ["restingMetabolism", "Resting metabolism", "kcal"], ["bodyAge", "Body age", "yrs"], ["bmi", "BMI", ""]];
   const prof = profile || {}, today = todayKey(), log = bodyLog || {};
   const [vals, setVals] = useState(() => ({ ...(log[today]?.vals || {}) })), [analysis, setAnalysis] = useState(log[today]?.analysis || ""), [loading, setLoading] = useState(false), [open, setOpen] = useState(null);
   const set = (k, v) => setVals(p => ({ ...p, [k]: v }));
+  const missing = !prof.sex || !(prof.age > 0) || !(prof.heightCm > 0), [pf, setPf] = useState({ sex: prof.sex || "female", age: prof.age || "", heightCm: prof.heightCm || "" });
   const who = [prof.sex ? prof.sex : null, prof.age ? prof.age + " years old" : null, prof.heightCm ? prof.heightCm + " cm" : null, weight > 0 ? weight + " kg" : null].filter(Boolean);
   const interpret = async () => {
     const filled = Object.entries(vals).filter(([, v]) => v !== "" && v != null); if (!filled.length) { setAnalysis("Enter at least one reading first."); return; }
@@ -489,7 +490,15 @@ function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo }) 
     <Head title="Body" onClose={onClose} />
     <div style={{ flex: 1, overflowY: "auto", padding: "18px 20px" }}>
       <div style={{ fontSize: 13, color: C.soft, marginBottom: 10, lineHeight: 1.5 }}>Enter readings from your smart scale. Fill only what you have — saved figures chart over time in Progress.</div>
-      <div style={{ fontSize: 12, color: who.length ? C.faint : C.amber, marginBottom: 16 }}>{who.length ? "Using your profile: " + who.join(" · ") : "No profile found — set your sex and age in Profile for tailored results."}</div>
+      {missing ? <div style={{ ...card, padding: 14, marginBottom: 16 }}>
+        <div style={{ fontSize: 12.5, color: C.amber, marginBottom: 10, lineHeight: 1.5 }}>This device has no complete profile saved. Add it once so results are tailored to you.</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>{[["female", "Female"], ["male", "Male"]].map(([v, l]) => <button key={v} onClick={() => setPf(p => ({ ...p, sex: v }))} style={{ flex: 1, border: `1px solid ${pf.sex === v ? "transparent" : C.stroke}`, background: pf.sex === v ? grad : C.glass, color: pf.sex === v ? "#fff" : C.soft, padding: "9px 0", fontSize: 13, fontWeight: 600, borderRadius: 99, cursor: "pointer", fontFamily: FONT }}>{l}</button>)}</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input type="number" inputMode="numeric" placeholder="Age" value={pf.age} onChange={e => setPf(p => ({ ...p, age: e.target.value }))} style={{ flex: 1, minWidth: 0, background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 12, padding: "10px 12px", fontSize: 16, fontFamily: FONT, outline: "none", color: C.ink }} />
+          <input type="number" inputMode="numeric" placeholder="Height cm" value={pf.heightCm} onChange={e => setPf(p => ({ ...p, heightCm: e.target.value }))} style={{ flex: 1, minWidth: 0, background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 12, padding: "10px 12px", fontSize: 16, fontFamily: FONT, outline: "none", color: C.ink }} />
+          <button onClick={() => { if (+pf.age > 0 && +pf.heightCm > 0) onSaveProfile({ sex: pf.sex, age: +pf.age, heightCm: +pf.heightCm }); }} style={{ border: "none", background: grad, color: "#fff", padding: "0 16px", fontSize: 13, fontWeight: 700, borderRadius: 12, cursor: "pointer", fontFamily: FONT }}>Save</button>
+        </div>
+      </div> : <div style={{ fontSize: 12, color: C.faint, marginBottom: 16 }}>Using your profile: {who.join(" · ")}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{FIELDS.map(([k, l, u]) => <div key={k}><label style={{ fontSize: 11, color: C.faint, fontWeight: 600, display: "block", marginBottom: 6 }}>{l}{u && ` · ${u}`}</label><input type="number" inputMode="decimal" value={vals[k] ?? ""} onChange={e => set(k, e.target.value)} style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 12, padding: "10px 12px", fontSize: 19, fontFamily: FONT, fontWeight: 700, outline: "none", color: C.ink }} /></div>)}</div>
       {(() => { const sx = prof.sex, rows = FIELDS.map(([k, l, u]) => { const v = vals[k]; if (v === "" || v == null || isNaN(+v)) return null; const st = evalStatus(+v, bandFor(k, sx, prof.age), u); const prevKey = Object.keys(log).filter(d => d < today).sort().pop(), pv = prevKey && log[prevKey].vals?.[k]; const delta = pv !== "" && pv != null && !isNaN(+pv) ? +v - +pv : null; return { k, l, u, v, st, delta }; }).filter(Boolean);
         const bf = +vals.bodyFat, sm = +vals.skeletalMuscle, extra = [];
@@ -796,6 +805,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
   const saveFavs = async (n) => { setFavourites(n); await store.set("loop_fav", n); };
   const savePhotos = async (n) => { setPhotos(n); await store.set("loop_photos", n); };
   const toggleFav = (e) => { const ex = favourites.some(f => f.name === e.name); saveFavs(ex ? favourites.filter(f => f.name !== e.name) : [...favourites, { name: e.name, calories: e.calories, protein: e.protein || 0, fat: e.fat || 0, fibre: e.fibre || 0, sugar: e.sugar || 0, netCarbs: e.netCarbs || 0 }]); };
+  const saveProfile = async (pp) => { const np = { activity: "light", weightKg: data.weight || 60, ...(data.profile || {}), ...pp }; liveCfg.current = { ...liveCfg.current, profile: np }; setData(d => ({ ...d, profile: np })); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, profile: np }); };
   const saveBody = async (en) => { const n = { ...bodyLog, [en.date]: { vals: en.vals, analysis: en.analysis } }; setBodyLog(n); await store.set("loop_body", n); };
   const toggleDeduct = async () => { const v = !data.deductBurned; liveCfg.current = { ...liveCfg.current, deductBurned: v }; setData(d => ({ ...d, deductBurned: v })); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, deductBurned: v }); };
   const toggleSound = async () => { const v = !data.soundOn; sound.on = v; liveCfg.current = { ...liveCfg.current, soundOn: v }; setData(d => ({ ...d, soundOn: v })); if (v) sound.tap(); const c = await store.get("loop_config", {}); await store.set("loop_config", { ...c, soundOn: v }); };
@@ -925,7 +935,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
 
     {modal === "food" && <FoodLog goal={budget} macroGoals={macroGoals} entries={foods} favourites={favourites} pastFoods={pastFoods} onAdd={f => { sound.add(); setFoods(p => [...p, f]); }} onRemove={id => setFoods(p => p.filter(e => e.id !== id))} onToggleFav={toggleFav} onClose={() => setModal(null)} />}
     {modal === "journal" && <Journal photos={photos} onAdd={p => savePhotos([...photos, p])} onRemove={id => savePhotos(photos.filter(x => x.id !== id))} onClose={() => setModal(null)} />}
-    {modal === "body" && <BodyComp onSaveEntry={saveBody} profile={data.profile} weight={data.weight} bodyLog={bodyLog} goalInfo={{ targetWeight: data.targetWeight, calorieGoal: data.calorieGoal, targetDate: data.targetDate }} onClose={() => setModal(null)} />}
+    {modal === "body" && <BodyComp onSaveEntry={saveBody} profile={data.profile} weight={data.weight} bodyLog={bodyLog} onSaveProfile={saveProfile} goalInfo={{ targetWeight: data.targetWeight, calorieGoal: data.calorieGoal, targetDate: data.targetDate }} onClose={() => setModal(null)} />}
     {modal === "history" && <Progress history={history} bodyLog={bodyLog} data={data} onClose={() => setModal(null)} />}
     {modal === "ai" && <Chat data={{ ...data, caloriesEaten, budget, burned }} onClose={() => setModal(null)} />}
     {modal === "score" && <ScoreInfo score={score} onCelebrate={() => { sound.win(); setFxIndex(Math.floor(Math.random() * EFFECTS.length)); setCelebrate(c => c + 1); }} onClose={() => setModal(null)} />}
