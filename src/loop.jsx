@@ -108,9 +108,6 @@ const pick = (o, ks) => Object.fromEntries(ks.filter(k => o && o[k] !== undefine
 const grad = "var(--grad)"; // set per theme via CSS variable
 const themeVars = () => `:root{--f:${C.font};--grad:${C.grad};}`;
 
-const LogoMark = ({ size = 30 }) => <div style={{ width: size, height: size, borderRadius: size * 0.26, background: "linear-gradient(135deg, #FF7A8A, #8B7CFF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px rgba(139,124,255,0.35)" }}>
-  <svg width={size * 0.66} height={size * 0.66} viewBox="0 0 100 100"><path d="M66.5 27.3 A28 28 0 1 1 33.5 27.3" fill="none" stroke="#fff" strokeWidth="10" strokeLinecap="round" /></svg>
-</div>;
 const tdeeOf = ({ sex, age, heightCm, weightKg, activity }) => {
   const bmr = sex === "female" ? 10 * weightKg + 6.25 * heightCm - 5 * age - 161 : 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
   const f = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725 };
@@ -359,7 +356,7 @@ function Setup({ initial, onDone }) {
   const pill = (k, opts) => <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{opts.map(([v, l]) => <button key={v} onClick={() => set(k, v)} style={{ border: `1px solid ${f[k] === v ? "transparent" : C.stroke}`, background: f[k] === v ? grad : C.glass, color: f[k] === v ? "#fff" : C.soft, padding: "10px 18px", fontSize: 13, fontWeight: 600, borderRadius: 99, cursor: "pointer", fontFamily: FONT }}>{l}</button>)}</div>;
   return <div style={{ minHeight: "100vh", background: C.setupBg, display: "flex", alignItems: "center", justifyContent: "center", padding: 22 }}>
     <div style={{ maxWidth: 380, width: "100%" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}><LogoMark size={50} /><div style={{ fontFamily: FONT, fontSize: 44, fontWeight: 800, letterSpacing: "-0.03em", background: C.textGrad || grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div></div>
+      <div style={{ fontFamily: FONT, fontSize: 44, fontWeight: 800, letterSpacing: "-0.03em", background: C.textGrad || grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div>
       <div style={{ fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", color: C.faint, marginTop: 4, marginBottom: 36, fontWeight: 600 }}>Find your rhythm · {step + 1} of 3</div>
       {step === 0 && <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div><label style={lab}>I am</label>{pill("sex", [["female", "Female"], ["male", "Male"]])}</div>
@@ -822,7 +819,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
       <div key={viewDate} className={slide < 0 ? "sl" : slide > 0 ? "sr" : "fu"} onTouchStart={onTS} onTouchEnd={onTE} style={{ touchAction: "pan-y pinch-zoom", maxWidth: 470, margin: "0 auto", padding: "0 18px 110px" }}>
         <div style={{ paddingTop: "calc(env(safe-area-inset-top) + 38px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}><LogoMark size={34} /><div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", background: C.textGrad || grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div></div>
+            <div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", background: C.textGrad || grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div>
           </div>
           <div onClick={() => open("profile")} style={{ width: 42, height: 42, borderRadius: "50%", background: account ? grad : C.glass, border: `1px solid ${C.stroke}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: account ? "#fff" : C.soft, cursor: "pointer" }}>{account?.name ? account.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() : "◎"}</div>
         </div>
