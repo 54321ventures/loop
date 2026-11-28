@@ -7,11 +7,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg"],
+      includeAssets: ["icon.svg", "favicon-48.png", "apple-touch-icon.png"],
       workbox: { navigateFallbackDenylist: [/^\/api\//], globPatterns: ["**/*.{js,css,html,svg,png}"] },
       manifest: {
         name: "Loop", short_name: "Loop", description: "A calm wellness companion",
-        theme_color: "#0E1020", background_color: "#0E1020", display: "standalone", start_url: "/",
+        theme_color: "#8B7CFF", background_color: "#F4F1FF", display: "standalone", start_url: "/",
         icons: [
           { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },

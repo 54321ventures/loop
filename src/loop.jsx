@@ -35,9 +35,9 @@ const hex2rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const tint = (h, t) => { const [r, g, b] = hex2rgb(h); const m = (v) => Math.round(v + (255 - v) * t); return `rgb(${m(r)},${m(g)},${m(b)})`; };
 const shade = (h, t) => { const [r, g, b] = hex2rgb(h); const m = (v) => Math.round(v * (1 - t)); return `rgb(${m(r)},${m(g)},${m(b)})`; };
 const GRAD = (a, b) => `linear-gradient(135deg, ${a}, ${b})`;
-const THEME_DEFAULTS = { font: "'Sora'", grad: GRAD("#FF7A8A", "#8B7CFF"), radius: 22, blur: "blur(20px)", cardBorder: null, cardShadow: "none", blob: 0.12, light: false, tileBg: null, tileBorder: null, tileInk: null, tileExtra: null, ring: null, ringGlow: "drop-shadow(0 0 6px rgba(139,124,255,0.5))" };
+const THEME_DEFAULTS = { font: "'Sora'", grad: GRAD("#FF7A8A", "#8B7CFF"), radius: 22, blur: "blur(20px)", cardBorder: null, cardShadow: "none", blob: 0.12, light: false, tileBg: null, tileBorder: null, tileInk: null, tileExtra: null, textGrad: null, ring: null, ringGlow: "drop-shadow(0 0 6px rgba(139,124,255,0.5))" };
 // Midnight (key "dark") — neon night: near-black navy, faint grid, thin glowing cyan edges, solid panels, techy sans. Nothing glassy.
-THEMES.dark = { ...THEME_DEFAULTS, light: false, font: "'IBM Plex Sans'", grad: GRAD("#0891B2", "#059669"), radius: 14, blur: "none", blob: 0, ring: ["#22D3EE", "#38BDF8", "#34D399"], ringGlow: "drop-shadow(0 0 7px rgba(34,211,238,0.55))",
+THEMES.dark = { ...THEME_DEFAULTS, light: false, font: "'IBM Plex Sans'", grad: GRAD("#0891B2", "#059669"), textGrad: GRAD("#22D3EE", "#34D399"), radius: 14, blur: "none", blob: 0, ring: ["#22D3EE", "#38BDF8", "#34D399"], ringGlow: "drop-shadow(0 0 7px rgba(34,211,238,0.55))",
   bg0: "#070A12", bg1: "#0D1220", bg2: "#131A2C",
   glass: "#0C1322", glassBright: "#141D33", stroke: "rgba(34,211,238,0.16)", cardBorder: "1px solid rgba(34,211,238,0.20)", cardShadow: "0 0 26px rgba(34,211,238,0.05)",
   ink: "#E8F1FA", soft: "#9FB3C8", faint: "#5F7388",
@@ -73,7 +73,7 @@ THEMES.pop = { ...THEME_DEFAULTS, light: true, font: "'Space Grotesk'", grad: GR
   food: "#FF5C8A", exercise: "#FFB020", steps: "#4D9DFF", weight: "#7C5CFF", mood: "#FF8FB1", sleep: "#7C5CFF", water: "#19C6D6",
   tileBg: (a) => tint(a, 0.62), tileBorder: () => `2.5px solid ${INK}` };
 // Ember — espresso & copper, "colour-block": solid flat panels, no glass/gradients/glow; each habit tile is a solid deep warm block with cream text.
-THEMES.ember = { ...THEME_DEFAULTS, light: false, font: "'Manrope'", grad: GRAD("#E8772E", "#E8772E"), radius: 28, blur: "none", blob: 0, ring: ["#F08A3C", "#F08A3C", "#F08A3C"], ringGlow: "none",
+THEMES.ember = { ...THEME_DEFAULTS, light: false, font: "'Manrope'", grad: GRAD("#E8772E", "#E8772E"), textGrad: GRAD("#FFA24D", "#FF7A59"), radius: 28, blur: "none", blob: 0, ring: ["#F08A3C", "#F08A3C", "#F08A3C"], ringGlow: "none",
   bg0: "#14100E", bg1: "#1D1713", bg2: "#271E19",
   glass: "#211A16", glassBright: "#2B221D", stroke: "rgba(255,225,200,0.10)", cardBorder: "1px solid transparent", cardShadow: "none",
   ink: "#FBEFE3", soft: "#C9B8A9", faint: "#8F7F72",
@@ -108,6 +108,9 @@ const pick = (o, ks) => Object.fromEntries(ks.filter(k => o && o[k] !== undefine
 const grad = "var(--grad)"; // set per theme via CSS variable
 const themeVars = () => `:root{--f:${C.font};--grad:${C.grad};}`;
 
+const LogoMark = ({ size = 30 }) => <div style={{ width: size, height: size, borderRadius: size * 0.26, background: "linear-gradient(135deg, #FF7A8A, #8B7CFF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px rgba(139,124,255,0.35)" }}>
+  <svg width={size * 0.66} height={size * 0.66} viewBox="0 0 100 100"><path d="M63.4 22.4 A28.5 28.5 0 1 1 36.6 22.4" fill="none" stroke="#fff" strokeWidth="11" strokeLinecap="round" transform="rotate(8 50 50)" /><circle cx="50" cy="50" r="7.5" fill="#fff" /></svg>
+</div>;
 const tdeeOf = ({ sex, age, heightCm, weightKg, activity }) => {
   const bmr = sex === "female" ? 10 * weightKg + 6.25 * heightCm - 5 * age - 161 : 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
   const f = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725 };
@@ -356,7 +359,7 @@ function Setup({ initial, onDone }) {
   const pill = (k, opts) => <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{opts.map(([v, l]) => <button key={v} onClick={() => set(k, v)} style={{ border: `1px solid ${f[k] === v ? "transparent" : C.stroke}`, background: f[k] === v ? grad : C.glass, color: f[k] === v ? "#fff" : C.soft, padding: "10px 18px", fontSize: 13, fontWeight: 600, borderRadius: 99, cursor: "pointer", fontFamily: FONT }}>{l}</button>)}</div>;
   return <div style={{ minHeight: "100vh", background: C.setupBg, display: "flex", alignItems: "center", justifyContent: "center", padding: 22 }}>
     <div style={{ maxWidth: 380, width: "100%" }}>
-      <div style={{ fontFamily: FONT, fontSize: 44, fontWeight: 800, letterSpacing: "-0.03em", background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}><LogoMark size={50} /><div style={{ fontFamily: FONT, fontSize: 44, fontWeight: 800, letterSpacing: "-0.03em", background: C.textGrad || grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div></div>
       <div style={{ fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", color: C.faint, marginTop: 4, marginBottom: 36, fontWeight: 600 }}>Find your rhythm · {step + 1} of 3</div>
       {step === 0 && <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div><label style={lab}>I am</label>{pill("sex", [["female", "Female"], ["male", "Male"]])}</div>
@@ -819,7 +822,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
       <div key={viewDate} className={slide < 0 ? "sl" : slide > 0 ? "sr" : "fu"} onTouchStart={onTS} onTouchEnd={onTE} style={{ touchAction: "pan-y pinch-zoom", maxWidth: 470, margin: "0 auto", padding: "0 18px 110px" }}>
         <div style={{ paddingTop: "calc(env(safe-area-inset-top) + 38px)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}><LogoMark size={34} /><div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", background: C.textGrad || grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Loop</div></div>
           </div>
           <div onClick={() => open("profile")} style={{ width: 42, height: 42, borderRadius: "50%", background: account ? grad : C.glass, border: `1px solid ${C.stroke}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: account ? "#fff" : C.soft, cursor: "pointer" }}>{account?.name ? account.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() : "◎"}</div>
         </div>
