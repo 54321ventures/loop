@@ -664,7 +664,7 @@ function Profile({ data, history, streak, account, theme, onToggleTheme, onLogin
       <div style={{ textAlign: "center", marginTop: 22 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", display: "inline-block" }}>Made by LeaLora 🌱</div>
         <div style={{ fontSize: 11, color: C.soft, marginTop: 3, fontStyle: "italic" }}>a work in progress, for works in progress</div>
-        <div style={{ fontSize: 10.5, color: C.faint, marginTop: 2, letterSpacing: "0.1em" }}>2026</div>
+        <div style={{ fontSize: 10.5, color: C.faint, marginTop: 2, letterSpacing: "0.1em" }}>2026 · v{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev"}</div>
       </div>
       <p style={{ fontSize: 11, color: C.faint, marginTop: 18, lineHeight: 1.5, textAlign: "center" }}>Loop is a wellness companion, not a medical service. Figures are estimates — consult a doctor or dietitian for personal advice.</p>
     </div>
