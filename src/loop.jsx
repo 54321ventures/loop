@@ -471,7 +471,7 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
 function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo, onSaveProfile }) {
   const FIELDS = [["bodyFat", "Body fat", "%"], ["subcutaneous", "Subcutaneous fat", "%"], ["skeletalMuscle", "Skeletal muscle", "%"], ["visceral", "Visceral fat", ""], ["restingMetabolism", "Resting metabolism", "kcal"], ["bodyAge", "Body age", "yrs"], ["bmi", "BMI", ""]];
   const prof = profile || {}, today = todayKey(), log = bodyLog || {};
-  const [vals, setVals] = useState(() => ({ ...(log[today]?.vals || {}) })), [analysis, setAnalysis] = useState(log[today]?.analysis || ""), [loading, setLoading] = useState(false), [open, setOpen] = useState(null);
+  const [vals, setVals] = useState({}), [analysis, setAnalysis] = useState(log[today]?.analysis || ""), [loading, setLoading] = useState(false), [open, setOpen] = useState(null);
   const set = (k, v) => setVals(p => ({ ...p, [k]: v }));
   const missing = !prof.sex || !(prof.age > 0) || !(prof.heightCm > 0), [pf, setPf] = useState({ sex: prof.sex || "female", age: prof.age || "", heightCm: prof.heightCm || "" });
   const who = [prof.sex ? prof.sex : null, prof.age ? prof.age + " years old" : null, prof.heightCm ? prof.heightCm + " cm" : null, weight > 0 ? weight + " kg" : null].filter(Boolean);
@@ -483,7 +483,7 @@ function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo, on
       const prevTxt = prevE ? "Previous reading (" + prevKey + "): " + Object.entries(prevE.vals || {}).filter(([, v]) => v !== "" && v != null).map(([k, v]) => { const f = FIELDS.find(x => x[0] === k); return f ? `${f[1]} ${v}${f[2]}` : null; }).filter(Boolean).join(", ") + ". " : "";
       const goalTxt = goalInfo && goalInfo.targetWeight ? `Goal: reach ${goalInfo.targetWeight} kg${goalInfo.targetDate ? " by " + goalInfo.targetDate : ""}; daily target ${goalInfo.calorieGoal} kcal. ` : "";
       const text = await askAI("You are a supportive, evidence-based body-composition coach. Interpret smart-scale readings (Omron, Hume, Tanita) for this specific person, using their sex, age, height, weight and goal. Be concrete: quote their numbers and the healthy range for them. Use exactly these plain-text sections, no markdown symbols:\n\nHEADLINE — one sentence overall verdict.\n\nWHAT THE NUMBERS SAY — each metric entered: value, healthy range for them, status, and what it means in plain English. Note how metrics relate (e.g. fat vs muscle vs resting metabolism, body age vs real age).\n\nTREND — if a previous reading is given, say what changed and whether that is good; otherwise say to re-measure in 2-4 weeks under the same conditions.\n\nTOP 3 PRIORITIES — ranked, with why each matters for them.\n\nHOW TO IMPROVE — grouped as Food (with protein grams/day and calorie guidance fitting their target), Strength & movement (weekly plan, sets/reps, steps), Sleep & stress, and Habits for measuring consistently. Give specific numbers and practical examples, safe for a general adult.\n\nEnd with one line: estimates from impedance, not a diagnosis; see a professional for concerns. Tone: warm, never alarming. Under 450 words.", (who.length ? "About me: " + who.join(", ") + ". " : "") + goalTxt + prevTxt + "Today's readings: " + readout, 1800);
-      setAnalysis(text); await onSaveEntry({ date: today, vals, analysis: text }); } catch (e) { setAnalysis(e.message); } finally { setLoading(false); }
+      setAnalysis(text); await onSaveEntry({ date: today, vals: { ...(log[today]?.vals || {}), ...Object.fromEntries(filled) }, analysis: text }); setVals({}); } catch (e) { setAnalysis(e.message); } finally { setLoading(false); }
   };
   const past = Object.keys(log).sort().reverse(), fmtD = k => new Date(k + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   return <div style={{ ...sheetWrap }} onClick={onClose}><div onClick={e => e.stopPropagation()} style={{ ...sheet }}>
@@ -500,12 +500,12 @@ function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo, on
         </div>
       </div> : <div style={{ fontSize: 12, color: C.faint, marginBottom: 16 }}>Using your profile: {who.join(" · ")}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{FIELDS.map(([k, l, u]) => <div key={k}><label style={{ fontSize: 11, color: C.faint, fontWeight: 600, display: "block", marginBottom: 6 }}>{l}{u && ` · ${u}`}</label><input type="number" inputMode="decimal" value={vals[k] ?? ""} onChange={e => set(k, e.target.value)} style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 12, padding: "10px 12px", fontSize: 19, fontFamily: FONT, fontWeight: 700, outline: "none", color: C.ink }} /></div>)}</div>
-      {(() => { const sx = prof.sex, rows = FIELDS.map(([k, l, u]) => { const v = vals[k]; if (v === "" || v == null || isNaN(+v)) return null; const st = evalStatus(+v, bandFor(k, sx, prof.age), u); const prevKey = Object.keys(log).filter(d => d < today).sort().pop(), pv = prevKey && log[prevKey].vals?.[k]; const delta = pv !== "" && pv != null && !isNaN(+pv) ? +v - +pv : null; return { k, l, u, v, st, delta }; }).filter(Boolean);
-        const bf = +vals.bodyFat, sm = +vals.skeletalMuscle, extra = [];
+      {(() => { const sx = prof.sex, sv = Object.values(vals).some(x => x !== "" && x != null) ? vals : (log[today]?.vals || {}), rows = FIELDS.map(([k, l, u]) => { const v = sv[k]; if (v === "" || v == null || isNaN(+v)) return null; const st = evalStatus(+v, bandFor(k, sx, prof.age), u); const prevKey = Object.keys(log).filter(d => d < today).sort().pop(), pv = prevKey && log[prevKey].vals?.[k]; const delta = pv !== "" && pv != null && !isNaN(+pv) ? +v - +pv : null; return { k, l, u, v, st, delta }; }).filter(Boolean);
+        const bf = +sv.bodyFat, sm = +sv.skeletalMuscle, extra = [];
         if (weight > 0 && bf > 0) { extra.push(["Fat mass", (weight * bf / 100).toFixed(1) + " kg"]); extra.push(["Lean mass", (weight * (1 - bf / 100)).toFixed(1) + " kg"]); }
         if (weight > 0 && sm > 0) extra.push(["Skeletal muscle", (weight * sm / 100).toFixed(1) + " kg"]);
-        if (prof.age && prof.heightCm && weight > 0 && +vals.restingMetabolism > 0) { const est = Math.round(10 * weight + 6.25 * prof.heightCm - 5 * prof.age + (prof.sex === "male" ? 5 : -161)); const d = Math.round(+vals.restingMetabolism - est); extra.push(["Metabolism vs typical", (d >= 0 ? "+" : "") + d + " kcal"]); }
-        if (prof.age && +vals.bodyAge > 0) { const d = Math.round(+vals.bodyAge - prof.age); extra.push(["Body age vs actual", d === 0 ? "same" : (d > 0 ? "+" : "") + d + " yrs"]); }
+        if (prof.age && prof.heightCm && weight > 0 && +sv.restingMetabolism > 0) { const est = Math.round(10 * weight + 6.25 * prof.heightCm - 5 * prof.age + (prof.sex === "male" ? 5 : -161)); const d = Math.round(+sv.restingMetabolism - est); extra.push(["Metabolism vs typical", (d >= 0 ? "+" : "") + d + " kcal"]); }
+        if (prof.age && +sv.bodyAge > 0) { const d = Math.round(+sv.bodyAge - prof.age); extra.push(["Body age vs actual", d === 0 ? "same" : (d > 0 ? "+" : "") + d + " yrs"]); }
         if (!rows.length) return null;
         return <div style={{ marginTop: 20 }}>
           <div style={{ fontSize: 11, color: C.faint, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>Your snapshot</div>
@@ -519,10 +519,9 @@ function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo, on
       {analysis && <div style={{ ...card, padding: 16, marginTop: 18, fontSize: 14, color: C.ink, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{analysis}</div>}
       {past.length > 0 && <div style={{ marginTop: 24 }}>
         <div style={{ fontSize: 11, color: C.faint, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>History</div>
-        {past.map(d => { const e = log[d], isOpen = open === d, summary = Object.entries(e.vals || {}).filter(([, v]) => v !== "" && v != null).map(([k, v]) => { const f = FIELDS.find(x => x[0] === k); return f ? `${f[1]} ${v}${f[2]}` : null; }).filter(Boolean).join(" · ");
+        {past.map(d => { const e = log[d], summary = Object.entries(e.vals || {}).filter(([, v]) => v !== "" && v != null).map(([k, v]) => { const f = FIELDS.find(x => x[0] === k); return f ? `${f[1]} ${v}${f[2]}` : null; }).filter(Boolean).join(" · ");
           return <div key={d} style={{ ...card, padding: "12px 14px", marginBottom: 8 }}>
-            <div onClick={() => setOpen(isOpen ? null : d)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{fmtD(d)}</div><div style={{ fontSize: 11.5, color: C.faint, marginTop: 3, lineHeight: 1.4 }}>{summary}</div></div><span style={{ color: C.faint, fontSize: 12 }}>{isOpen ? "▲" : "▼"}</span></div>
-            {isOpen && <div style={{ marginTop: 10, fontSize: 13.5, color: C.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{e.analysis || "No interpretation saved."}<div style={{ marginTop: 10 }}><span onClick={() => { setVals({ ...(e.vals || {}) }); setAnalysis(e.analysis || ""); }} style={{ cursor: "pointer", color: C.violet, fontSize: 12, fontWeight: 600 }}>Load these readings</span></div></div>}
+            <div style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{fmtD(d)}</div><div style={{ fontSize: 12, color: C.soft, marginTop: 4, lineHeight: 1.5 }}>{summary}</div>
           </div>; })}
       </div>}
       <div style={{ fontSize: 11, color: C.faint, marginTop: 16, lineHeight: 1.5 }}>Impedance readings vary with hydration and time of day. Informational only, not a medical diagnosis.</div>
@@ -664,7 +663,7 @@ function Profile({ data, history, streak, account, theme, onToggleTheme, onLogin
       <div style={{ textAlign: "center", marginTop: 22 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, background: grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", display: "inline-block" }}>Made by LeaLora 🌱</div>
         <div style={{ fontSize: 11, color: C.soft, marginTop: 3, fontStyle: "italic" }}>a work in progress, for works in progress</div>
-        <div style={{ fontSize: 10.5, color: C.faint, marginTop: 2, letterSpacing: "0.1em" }}>2026 · v{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev"}</div>
+        <div style={{ fontSize: 10.5, color: C.faint, marginTop: 2, letterSpacing: "0.1em" }}>v{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev"} · updated {typeof __BUILD_DATE__ !== "undefined" ? new Date(__BUILD_DATE__ + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</div>
       </div>
       <p style={{ fontSize: 11, color: C.faint, marginTop: 18, lineHeight: 1.5, textAlign: "center" }}>Loop is a wellness companion, not a medical service. Figures are estimates — consult a doctor or dietitian for personal advice.</p>
     </div>
