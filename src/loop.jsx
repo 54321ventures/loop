@@ -851,7 +851,11 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
             <span style={{ fontSize: 12, color: C.faint }}>Budget {budget} kcal</span>
             <span onClick={e => { e.stopPropagation(); sound.tap(); toggleDeduct(); }} style={{ fontSize: 12, color: C.soft, cursor: "pointer", borderBottom: `1px solid ${data.deductBurned ? C.cyan : C.stroke}` }}>Burned {burned} · {data.deductBurned ? "counted" : "off"}</span>
           </div>
-          {isToday && planInfo && <div style={{ fontSize: 11, color: C.faint, marginTop: 8, lineHeight: 1.5 }}>Daily target {data.calorieGoal} kcal · adjusts automatically toward {data.targetWeight} kg by {shortDate(planInfo.floored ? planInfo.trueDate : data.targetDate)}{goalNote && goalNote.from !== goalNote.to ? ` · ${goalNote.to > goalNote.from ? "▲" : "▼"} ${Math.abs(goalNote.to - goalNote.from)} from ${goalNote.from}` : ""}{planInfo.floored ? " · safe minimum applied, so the date is realistic" : ""}</div>}
+          {isToday && planInfo && <div style={{ fontSize: 11, color: planInfo.floored ? (C.light ? "#A86A12" : C.amber) : C.faint, marginTop: 8, lineHeight: 1.5 }}>
+            {planInfo.floored
+              ? <>Target held at the {data.calorieGoal} kcal safe minimum: reaching {data.targetWeight} kg by {shortDate(data.targetDate)} would need a lower, unsafe target. Realistic date: {shortDate(planInfo.trueDate)}. Choose a later date and your target rises and adjusts as you go. <span onClick={e => { e.stopPropagation(); setSetupDone(false); }} style={{ textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}>Change date</span></>
+              : <>Daily target {data.calorieGoal} kcal · adjusts automatically toward {data.targetWeight} kg by {shortDate(data.targetDate)}{goalNote && goalNote.from !== goalNote.to ? ` · ${goalNote.to > goalNote.from ? "▲" : "▼"} ${Math.abs(goalNote.to - goalNote.from)} from ${goalNote.from}` : ""}</>}
+          </div>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
