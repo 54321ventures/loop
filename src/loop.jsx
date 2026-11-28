@@ -468,7 +468,7 @@ function FoodLog({ goal, macroGoals, entries, favourites, pastFoods = [], onAdd,
   </div></div>;
 }
 
-function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog }) {
+function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog, goalInfo }) {
   const FIELDS = [["bodyFat", "Body fat", "%"], ["subcutaneous", "Subcutaneous fat", "%"], ["skeletalMuscle", "Skeletal muscle", "%"], ["visceral", "Visceral fat", ""], ["restingMetabolism", "Resting metabolism", "kcal"], ["bodyAge", "Body age", "yrs"], ["bmi", "BMI", ""]];
   const prof = profile || {}, today = todayKey(), log = bodyLog || {};
   const [vals, setVals] = useState(() => ({ ...(log[today]?.vals || {}) })), [analysis, setAnalysis] = useState(log[today]?.analysis || ""), [loading, setLoading] = useState(false), [open, setOpen] = useState(null);
@@ -478,7 +478,10 @@ function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog }) {
     const filled = Object.entries(vals).filter(([, v]) => v !== "" && v != null); if (!filled.length) { setAnalysis("Enter at least one reading first."); return; }
     setLoading(true); setAnalysis("Reading…");
     try { const readout = filled.map(([k, v]) => { const f = FIELDS.find(x => x[0] === k); return `${f[1]}: ${v}${f[2]}`; }).join(", ");
-      const text = await askAI("Interpret body-composition scale readings (Omron, Hume, Tanita) for this specific person, comparing each metric to the healthy range for their sex and age. Two labelled parts: 'What this means' (each metric vs the healthy range for them, plain English) and 'How to improve' (3-5 specific, safe, actionable tips). End: estimates, not a diagnosis; see a professional. Never alarming.", (who.length ? "About me: " + who.join(", ") + ". " : "") + "My readings: " + readout, 1200);
+      const prevKey = Object.keys(log).filter(d => d < today).sort().pop(), prevE = prevKey && log[prevKey];
+      const prevTxt = prevE ? "Previous reading (" + prevKey + "): " + Object.entries(prevE.vals || {}).filter(([, v]) => v !== "" && v != null).map(([k, v]) => { const f = FIELDS.find(x => x[0] === k); return f ? `${f[1]} ${v}${f[2]}` : null; }).filter(Boolean).join(", ") + ". " : "";
+      const goalTxt = goalInfo && goalInfo.targetWeight ? `Goal: reach ${goalInfo.targetWeight} kg${goalInfo.targetDate ? " by " + goalInfo.targetDate : ""}; daily target ${goalInfo.calorieGoal} kcal. ` : "";
+      const text = await askAI("You are a supportive, evidence-based body-composition coach. Interpret smart-scale readings (Omron, Hume, Tanita) for this specific person, using their sex, age, height, weight and goal. Be concrete: quote their numbers and the healthy range for them. Use exactly these plain-text sections, no markdown symbols:\n\nHEADLINE — one sentence overall verdict.\n\nWHAT THE NUMBERS SAY — each metric entered: value, healthy range for them, status, and what it means in plain English. Note how metrics relate (e.g. fat vs muscle vs resting metabolism, body age vs real age).\n\nTREND — if a previous reading is given, say what changed and whether that is good; otherwise say to re-measure in 2-4 weeks under the same conditions.\n\nTOP 3 PRIORITIES — ranked, with why each matters for them.\n\nHOW TO IMPROVE — grouped as Food (with protein grams/day and calorie guidance fitting their target), Strength & movement (weekly plan, sets/reps, steps), Sleep & stress, and Habits for measuring consistently. Give specific numbers and practical examples, safe for a general adult.\n\nEnd with one line: estimates from impedance, not a diagnosis; see a professional for concerns. Tone: warm, never alarming. Under 450 words.", (who.length ? "About me: " + who.join(", ") + ". " : "") + goalTxt + prevTxt + "Today's readings: " + readout, 1800);
       setAnalysis(text); await onSaveEntry({ date: today, vals, analysis: text }); } catch (e) { setAnalysis(e.message); } finally { setLoading(false); }
   };
   const past = Object.keys(log).sort().reverse(), fmtD = k => new Date(k + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -488,7 +491,22 @@ function BodyComp({ onSaveEntry, onClose, profile, weight, bodyLog }) {
       <div style={{ fontSize: 13, color: C.soft, marginBottom: 10, lineHeight: 1.5 }}>Enter readings from your smart scale. Fill only what you have — saved figures chart over time in Progress.</div>
       <div style={{ fontSize: 12, color: who.length ? C.faint : C.amber, marginBottom: 16 }}>{who.length ? "Using your profile: " + who.join(" · ") : "No profile found — set your sex and age in Profile for tailored results."}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{FIELDS.map(([k, l, u]) => <div key={k}><label style={{ fontSize: 11, color: C.faint, fontWeight: 600, display: "block", marginBottom: 6 }}>{l}{u && ` · ${u}`}</label><input type="number" inputMode="decimal" value={vals[k] ?? ""} onChange={e => set(k, e.target.value)} style={{ width: "100%", background: C.glass, border: `1px solid ${C.stroke}`, borderRadius: 12, padding: "10px 12px", fontSize: 19, fontFamily: FONT, fontWeight: 700, outline: "none", color: C.ink }} /></div>)}</div>
-      <button onClick={interpret} style={{ width: "100%", border: "none", background: grad, color: "#fff", padding: 15, fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 16, marginTop: 22, fontFamily: FONT, boxShadow: `0 8px 24px ${C.violet}44` }}>{loading ? "Interpreting…" : "✨ Interpret & save"}</button>
+      {(() => { const sx = prof.sex, rows = FIELDS.map(([k, l, u]) => { const v = vals[k]; if (v === "" || v == null || isNaN(+v)) return null; const st = evalStatus(+v, bandFor(k, sx, prof.age), u); const prevKey = Object.keys(log).filter(d => d < today).sort().pop(), pv = prevKey && log[prevKey].vals?.[k]; const delta = pv !== "" && pv != null && !isNaN(+pv) ? +v - +pv : null; return { k, l, u, v, st, delta }; }).filter(Boolean);
+        const bf = +vals.bodyFat, sm = +vals.skeletalMuscle, extra = [];
+        if (weight > 0 && bf > 0) { extra.push(["Fat mass", (weight * bf / 100).toFixed(1) + " kg"]); extra.push(["Lean mass", (weight * (1 - bf / 100)).toFixed(1) + " kg"]); }
+        if (weight > 0 && sm > 0) extra.push(["Skeletal muscle", (weight * sm / 100).toFixed(1) + " kg"]);
+        if (prof.age && prof.heightCm && weight > 0 && +vals.restingMetabolism > 0) { const est = Math.round(10 * weight + 6.25 * prof.heightCm - 5 * prof.age + (prof.sex === "male" ? 5 : -161)); const d = Math.round(+vals.restingMetabolism - est); extra.push(["Metabolism vs typical", (d >= 0 ? "+" : "") + d + " kcal"]); }
+        if (prof.age && +vals.bodyAge > 0) { const d = Math.round(+vals.bodyAge - prof.age); extra.push(["Body age vs actual", d === 0 ? "same" : (d > 0 ? "+" : "") + d + " yrs"]); }
+        if (!rows.length) return null;
+        return <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 11, color: C.faint, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>Your snapshot</div>
+          {rows.map(r => <div key={r.k} style={{ ...card, padding: "11px 14px", marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span style={{ fontSize: 13, color: C.soft, fontWeight: 600 }}>{r.l}</span><span style={{ fontSize: 15, color: C.ink, fontWeight: 700 }}>{r.v}{r.u && " " + r.u}{r.delta != null && r.delta !== 0 && <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 6, color: C.faint }}>{r.delta > 0 ? "▲" : "▼"} {Math.abs(+r.delta.toFixed(1))}</span>}</span></div>
+            {r.st ? <div style={{ fontSize: 11.5, color: r.st.color, marginTop: 4, fontWeight: 600 }}>{r.st.detail.startsWith(r.st.label) ? r.st.detail : r.st.label + " · " + r.st.detail}</div> : <div style={{ fontSize: 11.5, color: C.faint, marginTop: 4 }}>{r.k === "restingMetabolism" ? "Compared with typical for you below" : "No reference range"}</div>}
+          </div>)}
+          {extra.length > 0 && <div style={{ ...card, padding: "11px 14px", marginBottom: 8 }}>{extra.map(([a, b]) => <div key={a} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0" }}><span style={{ color: C.soft }}>{a}</span><span style={{ color: C.ink, fontWeight: 700 }}>{b}</span></div>)}</div>}
+        </div>; })()}
+      <button onClick={interpret} style={{ width: "100%", border: "none", background: grad, color: "#fff", padding: 15, fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 16, marginTop: 22, fontFamily: FONT, boxShadow: `0 8px 24px ${C.violet}44` }}>{loading ? "Analysing…" : "✨ Get insights & save"}</button>
       {analysis && <div style={{ ...card, padding: 16, marginTop: 18, fontSize: 14, color: C.ink, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{analysis}</div>}
       {past.length > 0 && <div style={{ marginTop: 24 }}>
         <div style={{ fontSize: 11, color: C.faint, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>History</div>
@@ -907,7 +925,7 @@ export default function Loop({ account: authAccount = null, onLogout = null }) {
 
     {modal === "food" && <FoodLog goal={budget} macroGoals={macroGoals} entries={foods} favourites={favourites} pastFoods={pastFoods} onAdd={f => { sound.add(); setFoods(p => [...p, f]); }} onRemove={id => setFoods(p => p.filter(e => e.id !== id))} onToggleFav={toggleFav} onClose={() => setModal(null)} />}
     {modal === "journal" && <Journal photos={photos} onAdd={p => savePhotos([...photos, p])} onRemove={id => savePhotos(photos.filter(x => x.id !== id))} onClose={() => setModal(null)} />}
-    {modal === "body" && <BodyComp onSaveEntry={saveBody} profile={data.profile} weight={data.weight} bodyLog={bodyLog} onClose={() => setModal(null)} />}
+    {modal === "body" && <BodyComp onSaveEntry={saveBody} profile={data.profile} weight={data.weight} bodyLog={bodyLog} goalInfo={{ targetWeight: data.targetWeight, calorieGoal: data.calorieGoal, targetDate: data.targetDate }} onClose={() => setModal(null)} />}
     {modal === "history" && <Progress history={history} bodyLog={bodyLog} data={data} onClose={() => setModal(null)} />}
     {modal === "ai" && <Chat data={{ ...data, caloriesEaten, budget, burned }} onClose={() => setModal(null)} />}
     {modal === "score" && <ScoreInfo score={score} onCelebrate={() => { sound.win(); setFxIndex(Math.floor(Math.random() * EFFECTS.length)); setCelebrate(c => c + 1); }} onClose={() => setModal(null)} />}
