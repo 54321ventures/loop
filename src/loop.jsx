@@ -109,7 +109,7 @@ const grad = "var(--grad)"; // set per theme via CSS variable
 const themeVars = () => `:root{--f:${C.font};--grad:${C.grad};}`;
 
 const LogoMark = ({ size = 30 }) => <div style={{ width: size, height: size, borderRadius: size * 0.26, background: "linear-gradient(135deg, #FF7A8A, #8B7CFF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px rgba(139,124,255,0.35)" }}>
-  <svg width={size * 0.66} height={size * 0.66} viewBox="0 0 100 100"><path d="M63.4 22.4 A28.5 28.5 0 1 1 36.6 22.4" fill="none" stroke="#fff" strokeWidth="12" strokeLinecap="round" transform="rotate(8 50 50)" /></svg>
+  <svg width={size * 0.66} height={size * 0.66} viewBox="0 0 100 100"><path d="M66.5 27.3 A28 28 0 1 1 33.5 27.3" fill="none" stroke="#fff" strokeWidth="10" strokeLinecap="round" /></svg>
 </div>;
 const tdeeOf = ({ sex, age, heightCm, weightKg, activity }) => {
   const bmr = sex === "female" ? 10 * weightKg + 6.25 * heightCm - 5 * age - 161 : 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
